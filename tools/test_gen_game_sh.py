@@ -29,10 +29,10 @@ def script(path, body):
     os.chmod(path, 0o755)
 
 
-def make(root, conf, gitignore="/addons/dot_core\n", tools=()):
+def make(root, conf, gitignore="/addons/gs_core\n", tools=()):
     os.makedirs(os.path.join(root, "examples"), exist_ok=True)
     os.makedirs(os.path.join(root, "tools"), exist_ok=True)
-    os.makedirs(os.path.join(root, "addons", "dot_core"), exist_ok=True)
+    os.makedirs(os.path.join(root, "addons", "gs_core"), exist_ok=True)
     open(os.path.join(root, "game.conf"), "w").write(conf)
     open(os.path.join(root, ".gitignore"), "w").write(gitignore)
     for s in ("alpha", "headless_imported"):
@@ -112,7 +112,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # 5. content links and optional addons
     d2 = os.path.join(tmp, "links")
-    make(d2, ALL, gitignore="/addons/dot_core\n# bootstrap-optional: not needed\n/addons/dot_extra\n"
+    make(d2, ALL, gitignore="/addons/gs_core\n# bootstrap-optional: not needed\n/addons/gs_extra\n"
          "# bootstrap-link: ../maps\n/maps/imported\n", tools=("verify_ui.sh",))
     rc, out, log = run(["test", "alpha"], cwd=d2)
     check("missing content link is refused", rc == 2 and "Content not linked: maps/imported" in out, out)
@@ -120,9 +120,9 @@ with tempfile.TemporaryDirectory() as tmp:
     rc, out, log = run(["test", "alpha"], cwd=d2)
     check("optional addon is not required, linked content passes", rc == 0, out)
     d3 = os.path.join(tmp, "nooptional")
-    make(d3, BASE, gitignore="/addons/dot_core\n# bootstrap-optional: x\n/addons/dot_extra\n")
+    make(d3, BASE, gitignore="/addons/gs_core\n# bootstrap-optional: x\n/addons/gs_extra\n")
     rc, out, log = run(["test", "alpha"], cwd=d3)
-    check("without gitignore_optional every addon is required", rc == 2 and "dot_extra" in out, out)
+    check("without gitignore_optional every addon is required", rc == 2 and "gs_extra" in out, out)
 
     # 6. UI checks run only on a full test, and only with xvfb-run
     ui_log = os.path.join(tmp, "ui")
@@ -168,7 +168,7 @@ with tempfile.TemporaryDirectory() as tmp:
     # defs: the site import files, through the addon repositories' exporters
     d5 = os.path.join(tmp, "defs")
     rc, out = make(d5, BASE + 'FEATURES="defs"\nDEFS_ACH="res://game/a.gd:catalogue"\nDEFS_LB="res://game/b.gd:boards"\n')
-    for addon in ("dot_achievements", "dot_leaderboard"):
+    for addon in ("gs_achievements", "gs_leaderboard"):
         repo = os.path.join(tmp, addon.replace("_", "-"))
         os.makedirs(os.path.join(repo, "addons", addon))
         os.makedirs(os.path.join(repo, "tools"))

@@ -5,13 +5,13 @@ extends GSConfig
 ## A pack may not declare a `class_name`, so TplGame loads this by preload.
 
 
-## `@export_group` -> cfg file: `cfg/game/dot-game-template/config_<file>/game.yml`. A group missing here is refused at boot.
+## `@export_group` -> cfg file: `cfg/game/gs-game-template/config_<file>/game.yml`. A group missing here is refused at boot.
 const CFG_FILES := {"Rules": "rules"}
 
 
 ## The binder every entry point uses (server scene, suites): [param config] layered, one cfg file per [constant CFG_FILES] entry.
 static func make_binder(config: GSConfig, json_path := "") -> GSGameConfigBinder:
-	var b := GSGameConfigBinder.create(config, "dot-game-template", "tpl", json_path)
+	var b := GSGameConfigBinder.create(config, "gs-game-template", "tpl", json_path)
 	b.grouped = true
 	b.group_files = CFG_FILES
 	return b

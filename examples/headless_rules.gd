@@ -11,7 +11,7 @@ const TplGame := preload("../game/tpl_game.gd")
 
 func _ready() -> void:
 	checks = 28
-	print("dot-game-template: the rules")
+	print("gs-game-template: the rules")
 
 	section("a game starts")
 	var game := _game()
@@ -65,7 +65,7 @@ func _ready() -> void:
 	check(game.collect(who) == 2, "standing on a coin collects it")
 	check(who.score == game.config.coin_value, "and scores config.coin_value (%d)" % who.score)
 	var binder := GSGameConfigBinder.create(game.config, "tpl", "tpl")
-	check(binder.schema().size() == 2 and binder.schema()[0]["key"] == "coin_value", "the config's fields reach dot-game's binder (cvars, yml, workbench)")
+	check(binder.schema().size() == 2 and binder.schema()[0]["key"] == "coin_value", "the config's fields reach gs-game's binder (cvars, yml, workbench)")
 	check(moved == [2] and game.coins[2] != target, "and the coin reappears elsewhere")
 	check(game.coins[2].distance_to(who.position) >= TplGame.PLAYER_RADIUS * 3.0,
 		"not under the player who just took it")

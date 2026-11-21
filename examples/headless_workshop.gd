@@ -13,7 +13,7 @@ const DIR := "user://ws_fixture/"
 
 func _ready() -> void:
 	checks = 19
-	print("dot-game-template: Workshop maps")
+	print("gs-game-template: Workshop maps")
 	GSLog.set_level(GSLog.Level.ERROR)
 	_write("bunker.json", '{"id": "bunker", "name": "Bunker", "size": [900, 500], "coins": 12, "floor": [0.2, 0.1, 0.1]}')
 	_write("bad.json", '{"id": "bad", "name": "Bad", "size": [9000, 500], "coins": 12}')

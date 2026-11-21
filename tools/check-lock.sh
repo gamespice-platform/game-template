@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Fails when a pin in addons.lock is older than the tag dot-server-deploy pins for the same addon.
+# Fails when a pin in addons.lock is older than the tag gs-server-deploy pins for the same addon.
 #
-#   tools/check-lock.sh [path/to/dot-server-deploy]    default: ../dot-server-deploy, else a shallow clone
+#   tools/check-lock.sh [path/to/gs-server-deploy]    default: ../gs-server-deploy, else a shallow clone
 #   tools/check-lock.sh --self-test                    runs the check against tools/fixtures
 #
 # A stale pin only shows on a fresh install, so it is caught here, not there.
-# The version rule (sort -V) is mirrored in dot-bootstrap/tools/check_lock_staleness.sh; change both.
+# The version rule (sort -V) is mirrored in gs-bootstrap/tools/check_lock_staleness.sh; change both.
 
 # is_older <have> <want>: true when have sorts at or below want
 is_older() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$1" ]; }
@@ -17,7 +17,7 @@ compare() {
         want="$(awk -v r="$repo" '$1 == r { print $2; exit }' "$2")"
         [ -n "$want" ] && [ "$want" != "$have" ] || continue
         if is_older "$have" "$want"; then
-            printf 'stale: %s is %s, dot-server-deploy pins %s\n' "$repo" "$have" "$want"
+            printf 'stale: %s is %s, gs-server-deploy pins %s\n' "$repo" "$have" "$want"
             bad=1
         fi
     done < "$1"
@@ -36,20 +36,20 @@ if [ "${1:-}" = "--self-test" ]; then
     echo "self-test ok"; exit 0
 fi
 
-server="${1:-../dot-server-deploy}/addons.lock"
+server="${1:-../gs-server-deploy}/addons.lock"
 if [ ! -f "$server" ]; then
     tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
     if timeout 60 git clone -q --depth 1 "https://github.com/gamespice-platform/server-deploy" "$tmp" 2>/dev/null; then
         server="$tmp/addons.lock"
     else
-        echo "check-lock: dot-server-deploy unreachable, skipped (not a failure)"; exit 0
+        echo "check-lock: gs-server-deploy unreachable, skipped (not a failure)"; exit 0
     fi
 fi
 
 if compare addons.lock "$server"; then
-    echo "addons.lock is current with dot-server-deploy"
+    echo "addons.lock is current with gs-server-deploy"
 else
-    echo "fix: tools/sync-lock.sh ${1:-<path to dot-server-deploy>} && git commit -am 'Refresh addons.lock'"
+    echo "fix: tools/sync-lock.sh ${1:-<path to gs-server-deploy>} && git commit -am 'Refresh addons.lock'"
     exit 1
 fi
 }

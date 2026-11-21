@@ -1,7 +1,7 @@
 extends Node
 
 ## Renders a solo pack map with the M menu open, for screenshot.sh (never --headless):
-## `screenshot.sh dot-game-template out.png --wait 6 --scene res://tools/shot_workshop.tscn`.
+## `screenshot.sh gs-game-template out.png --wait 6 --scene res://tools/shot_workshop.tscn`.
 ## A fixture pack registered in the shared index as solo stands in for the Workshop's.
 
 const DIR := "user://ws_shot/"

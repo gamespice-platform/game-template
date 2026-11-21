@@ -1,6 +1,6 @@
 # This game's descriptor: what a server runs when it installs this repository's pack.
 #
-# It travels INSIDE the pack (dot-ci's package.sh --pack keeps it at the root), so a server
+# It travels INSIDE the pack (gs-ci's package.sh --pack keeps it at the root), so a server
 # started with `TMC_GAMES=<site username>/<repo>` needs nothing else: `./server install-games`
 # fetches the pack, verifies its signature, and writes this file to content/<repo>/game.yml,
 # where the operator can edit it.
@@ -10,10 +10,10 @@
 # 1.2.0+r2, and this file cannot know either. What is written here for them is a placeholder.
 #
 # Every path is relative to the pack's mount point, which is this repository's root. They
-# MUST be relative: a server resolves them under res://dot_cloud/<content_id>/<version>/, and a
+# MUST be relative: a server resolves them under res://gs_cloud/<content_id>/<version>/, and a
 # client refuses any absolute scene path a server sends it.
 
-content_id: you/dot-game-template
+content_id: you/gs-game-template
 version: 0.0.0
 kind: pack
 
@@ -34,7 +34,7 @@ max_players: 16
 #   server_dependencies:   only the server mounts it; players never download it
 #                          (bot data, rulesets)
 #   maps:                  the game's delivered maps, one pack per map, fetched when the
-#                          server changes to one; turn them into dot-map entries with
+#                          server changes to one; turn them into gs-map entries with
 #                          GSMapCatalogue.add_delivered(key, scene)
 #
 # dependencies:

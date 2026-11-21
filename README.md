@@ -4,7 +4,7 @@ It needs Godot 4.7 and a Linux or macOS shell for the tools (the game itself run
 
 ## First 10 minutes
 
-1. Get the template and the addons: clone this repository, then `../dot-ci/scripts/resolve-deps.sh .` (section 3).
+1. Get the template and the addons: clone this repository, then `../gs-ci/scripts/resolve-deps.sh .` (section 3).
 2. `godot --headless --path . --import`, then `godot --path .` to play Coin Grab offline (section 4).
 3. `tools/check.sh` parses every script and runs every suite; it must pass before you change anything.
 4. Rename it to your game with `tools/rename.sh` (section 2), then change one real thing (section 6).
@@ -12,7 +12,7 @@ It needs Godot 4.7 and a Linux or macOS shell for the tools (the game itself run
 
 ## Settings, and the commands your game gets
 
-Settings layer the same way in every addon, weakest first: the addon's schema defaults, the addon's shipped `cfg/addon/<addon>/`, the game's `cfg/game/<game>/<addon>/`, the server operator's `cfg/server/addon/<addon>/` and `cfg/server/game/<game>/`, then environment variables, then the command line, then runtime changes (a console `set`). The folder is the addon name with `-` written as `_`. Secrets are read from files only: a key marked sensitive is refused from the environment and the command line. Details: [dot-core's addon-config.md](https://github.com/gamespice-platform/core/blob/main/docs/addon-config.md).
+Settings layer the same way in every addon, weakest first: the addon's schema defaults, the addon's shipped `cfg/addon/<addon>/`, the game's `cfg/game/<game>/<addon>/`, the server operator's `cfg/server/addon/<addon>/` and `cfg/server/game/<game>/`, then environment variables, then the command line, then runtime changes (a console `set`). The folder is the addon name with `-` written as `_`. Secrets are read from files only: a key marked sensitive is refused from the environment and the command line. Details: [gs-core's addon-config.md](https://github.com/gamespice-platform/core/blob/main/docs/addon-config.md).
 
 This template ships `tools/check.sh`. A finished game also has a `game.sh` wrapping the same steps:
 
@@ -55,7 +55,7 @@ Small as it is, it is the whole shape of a platform game:
 | `game/net/tpl_link.gd` | The four remote calls. |
 | `game.yml` | What a server runs when it installs your game. |
 | `examples/` | Three suites: the rules, a server and client over a real socket, and the pack rules. |
-| `export_presets.example.cfg` | A Web export preset. Copy it to `export_presets.cfg` (the editor rewrites that file, so it is gitignored) before exporting. Keep `cfg/*` in `include_filter`: Godot drops `.yml` from an export, and the addons' defaults in `cfg/addon/` go with it. dot-ci fails a repository without it. |
+| `export_presets.example.cfg` | A Web export preset. Copy it to `export_presets.cfg` (the editor rewrites that file, so it is gitignored) before exporting. Keep `cfg/*` in `include_filter`: Godot drops `.yml` from an export, and the addons' defaults in `cfg/addon/` go with it. gs-ci fails a repository without it. |
 | `tools/check.sh`, `tools/rename.sh` | The check to run before every push, and the rename. |
 
 ## 2. Make it yours
@@ -80,13 +80,13 @@ That renames every `tpl_` file and every `Tpl` name to your prefix (`game/cr_gam
 The game is built on the gs-* addons (GameSpice Core, GameSpice Net, GameSpice Server, GameSpice Game, GameSpice Menu with GameSpice UI and GameSpice Settings for the menu and the scoreboard, GameSpice Console for the console, GameSpice Chat for the self-mute list behind GameSpice UI's chat box, GameSpice Vote for the map menu and the vote on a server, and GameSpice Map for subscribed map packs in solo). They are not copied into your repository: the `/addons/<name>` lines in `.gitignore` are the list, and one script reads it and links them:
 
 ```bash
-git clone https://github.com/gamespice-platform/ci ../dot-ci
-../dot-ci/scripts/resolve-deps.sh .
+git clone https://github.com/gamespice-platform/ci ../gs-ci
+../gs-ci/scripts/resolve-deps.sh .
 ```
 
-That clones the addons into `.deps/` (ignored) and links them into `addons/`, **at the release tags in `addons.lock`**, not at the newest `main`. The lock holds the same tags as dot-server-deploy's own `addons.lock` (section 5), so the pack you build records the API levels the server you test it on has; a pack built against a newer `dot-net` than the server installs is refused with "needs dot-net API level 12 or newer; this server has level 11". `addons.lock` is written by `tools/sync-lock.sh` (it reads `../dot-server-deploy/addons.lock`, and the newest release tag for what that does not list); run it after you update dot-server-deploy, then delete `.deps/` and run `resolve-deps.sh` again. It clones only what is missing, so to update the addons, change the lock, delete `.deps/` and run it again. To use another addon, add its line to `.gitignore`, run `tools/sync-lock.sh`, and run `resolve-deps.sh`; keep the list to what you use. Delete `addons.lock` to follow `main` instead, and expect the version message above until the servers you run on are updated too.
+That clones the addons into `.deps/` (ignored) and links them into `addons/`, **at the release tags in `addons.lock`**, not at the newest `main`. The lock holds the same tags as gs-server-deploy's own `addons.lock` (section 5), so the pack you build records the API levels the server you test it on has; a pack built against a newer `gs-net` than the server installs is refused with "needs gs-net API level 12 or newer; this server has level 11". `addons.lock` is written by `tools/sync-lock.sh` (it reads `../gs-server-deploy/addons.lock`, and the newest release tag for what that does not list); run it after you update gs-server-deploy, then delete `.deps/` and run `resolve-deps.sh` again. It clones only what is missing, so to update the addons, change the lock, delete `.deps/` and run it again. To use another addon, add its line to `.gitignore`, run `tools/sync-lock.sh`, and run `resolve-deps.sh`; keep the list to what you use. Delete `addons.lock` to follow `main` instead, and expect the version message above until the servers you run on are updated too.
 
-This template matches dot-server-deploy at the tags in its `addons.lock`; read the versions from `addons.lock` itself, and run `tools/sync-lock.sh` whenever dot-server-deploy moves, because a lock that falls behind fails to parse (an old dot-core under a newer dot-profile). `resolve-deps.sh` clones over https; to use ssh remotes, set `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=url.git@github.com:.insteadOf GIT_CONFIG_VALUE_0=https://github.com/` first.
+This template matches gs-server-deploy at the tags in its `addons.lock`; read the versions from `addons.lock` itself, and run `tools/sync-lock.sh` whenever gs-server-deploy moves, because a lock that falls behind fails to parse (an old gs-core under a newer gs-profile). `resolve-deps.sh` clones over https; to use ssh remotes, set `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=url.git@github.com:.insteadOf GIT_CONFIG_VALUE_0=https://github.com/` first.
 
 Working inside the whole family instead? [GameSpice Bootstrap](https://github.com/gamespice-platform/bootstrap) clones every repository side by side and links every project's addons in one go (`./bootstrap.sh`), this one included.
 
@@ -104,8 +104,8 @@ WASD or the arrow keys, or hold a finger or the mouse where you want to go.
 The server is [GameSpice Server Deploy](https://github.com/gamespice-platform/server-deploy), the same tool every server on the platform runs. Beside your game:
 
 ```bash
-git clone https://github.com/gamespice-platform/server-deploy ../dot-server-deploy
-cd ../dot-server-deploy
+git clone https://github.com/gamespice-platform/server-deploy ../gs-server-deploy
+cd ../gs-server-deploy
 ./setup.sh --no-games
 ```
 
@@ -118,19 +118,19 @@ echo '{"include": ["game", "scenes", "game.yml", "provides.json", "icon.svg"]}' 
 ./server check --game crate-rush          # boots, mounts it, loads it, exits 0
 ```
 
-A client downloads the pack from wherever the server says content lives, so serve `dist/` and point the server at it. The shell only mounts packs signed by a key it trusts, so trust this machine's key first (this edits a tracked file in your dot-server-deploy checkout, on purpose):
+A client downloads the pack from wherever the server says content lives, so serve `dist/` and point the server at it. The shell only mounts packs signed by a key it trusts, so trust this machine's key first (this edits a tracked file in your gs-server-deploy checkout, on purpose):
 
 ```bash
 python3 -c 'import json; p="client/content.json"; d=json.load(open(p)); d["trusted_keys"]["local"]=open("keys/content.pub").read(); json.dump(d, open(p,"w"), indent=4)'
 
 python3 -m http.server 8000 --bind 127.0.0.1 --directory dist     # one terminal
 ./server --game crate-rush --port 27015 --content-url http://127.0.0.1:8000   # another
-godot --path . -- --connect 127.0.0.1:27015                        # a third, in the dot-server-deploy checkout too: the client
+godot --path . -- --connect 127.0.0.1:27015                        # a third, in the gs-server-deploy checkout too: the client
 ```
 
 The `pack.json` lists what goes in the pack (your game's folders and files), so anything else in the folder, such as your own scratch scripts, stays out; add a folder when your game gains one (`props`, `audio`). Without a `pack.json` the whole folder is published. The pack is called `you/crate-rush`: `you` is the placeholder owner in `game.yml`'s `content_id`, which the site replaces with your username on publish (section 8) and is fine on your machine.
 
-The client is dot-server-deploy's shell, which is why that last line runs in the dot-server-deploy checkout: it reads `--connect`, downloads your pack from the server, mounts it and joins (`player joined` in the server log). Running it from your own game's folder starts your game's own menu, which ignores `--connect` and never joins. `./server pack` signs with the key id `local` that `setup.sh` trusts in `data/content.json`; the `client/content.json` edit above is for the shell.
+The client is gs-server-deploy's shell, which is why that last line runs in the gs-server-deploy checkout: it reads `--connect`, downloads your pack from the server, mounts it and joins (`player joined` in the server log). Running it from your own game's folder starts your game's own menu, which ignores `--connect` and never joins. `./server pack` signs with the key id `local` that `setup.sh` trusts in `data/content.json`; the `client/content.json` edit above is for the shell.
 
 Run the last line twice for two players. After changing your game, run `./server pack crate-rush --source ../crate-rush` again and restart the server.
 
@@ -170,7 +170,7 @@ A big level draws every room in the frustum. GameSpice Map can bake occluders fr
 
 ## 7. The pack rules, and what the check catches
 
-A delivered game is mounted inside somebody else's client at `res://dot_cloud/<owner>/<repo>/<version>/`, not at `res://`. Two things that work perfectly in your project break there, silently:
+A delivered game is mounted inside somebody else's client at `res://gs_cloud/<owner>/<repo>/<version>/`, not at `res://`. Two things that work perfectly in your project break there, silently:
 
 - **No `class_name`, anywhere.** A mounted pack's class names are never registered, so every script that names another by its class fails to compile in the client. Reference your own scripts by relative path: `const CrGame := preload("cr_game.gd")`, `extends "cr_event.gd"`.
 - **No bare `"res://<your folder>/..."` in a script.** It resolves against the host, where your file is not. Wrap it where it is defined: `static var CRATE := CrPaths.rebase("res://props/crate.tscn")`. Paths inside `.tscn` and `.tres` files are fine: the publisher rewrites those.
@@ -216,15 +216,15 @@ The server fetches the pack from its content origin (`content_urls` in `cfg/serv
 
 ### Threads and who is sent what
 
-Two groups of settings decide how much a busy server costs. All of them go in `cfg/server/server.yml` (the server's own file; restart to apply), and the first group is also live at the console and in dot-workbench's **Server threads** panel.
+Two groups of settings decide how much a busy server costs. All of them go in `cfg/server/server.yml` (the server's own file; restart to apply), and the first group is also live at the console and in gs-workbench's **Server threads** panel.
 
 ```yaml
 # threads: the count, then the opt-ins (nothing is threaded until its own switch is on)
 sv_worker_threads: -1      # -1 automatic (the default: cores less one, and at most 8 while automatic), any number N sets exactly N threads, 0 everything on the main thread; set it when several servers share a machine
 sv_threads_net: 1          # build each player's snapshot on the workers (not on the web)
 sv_threads_npc: 0          # NPC decisions and path searches, for brains that support it
-map_load_threads: 0       # worker threads for the CPU-only stages of a map load (0 inline, -1 automatic, never on the web; needs dot-map)
-net_native: 0              # build snapshots in dot-net's native library (same bytes; GDScript where it cannot load)
+map_load_threads: 0       # worker threads for the CPU-only stages of a map load (0 inline, -1 automatic, never on the web; needs gs-map)
+net_native: 0              # build snapshots in gs-net's native library (same bytes; GDScript where it cannot load)
 net_native_interest: 0     # with net_native, also pick each player's relevant entities natively (GDScript for a strategy it cannot port)
 
 # relevance: what a player is sent
@@ -235,14 +235,14 @@ net_far_distance: 60       # metres; 0 is never far
 
 `net_interest_radius` is a ceiling on the game's own radius (the smaller wins; 0 means no limit from you). `net_far_every` and `net_far_distance` replace the game's values when written. `sv_threads_npc` (off) is read by Zombie Zone, which runs its horde's path searches on worker threads; it stays off on the web, without threads and on one CPU. Zombie Zone's `zz_net_far_every` and `zz_net_far_distance` are the same two settings under the game's own names and keep working; where a game sets its own, the game's wins.
 
-Where the files live: the server's own settings are `cfg/server/server.yml`; an addon's are `cfg/server/addon/<addon>/<file>.yml` (singular `addon`, the folder is the addon name with `-` as `_`) and one game's `cfg/server/game/<game>/`. The workbench's Save for the thread cvars writes `cfg/server/addon/dot_server/threads/server.yml` and applies it at the next start. `cfg/server/addons/` (plural) and `cfg/addons/` are the old layout: read, with a warning, and not documented anywhere else. A name the server does not know is listed at boot as `unrecognised setting`, with the nearest known names (`did you mean net_interest_radius?`).
+Where the files live: the server's own settings are `cfg/server/server.yml`; an addon's are `cfg/server/addon/<addon>/<file>.yml` (singular `addon`, the folder is the addon name with `-` as `_`) and one game's `cfg/server/game/<game>/`. The workbench's Save for the thread cvars writes `cfg/server/addon/gs_server/threads/server.yml` and applies it at the next start. `cfg/server/addons/` (plural) and `cfg/addons/` are the old layout: read, with a warning, and not documented anywhere else. A name the server does not know is listed at boot as `unrecognised setting`, with the nearest known names (`did you mean net_interest_radius?`).
 
 ## 10. Versions: what "this game needs GameSpice Net API level 2" means
 
 Your pack contains your game and none of the addons: those are in the client and the server that mount it. So a pack built against a newer GameSpice Net than a player's client has would fail to compile there, halfway through loading. To say that in a sentence instead, every addon declares an **API level** (`LEVEL` and `OLDEST` in `addons/<addon>/<addon>_api.gd`), and `package.sh` writes `requires.json` into your pack naming the level of each addon your game uses, as built:
 
 ```json
-{"format": 1, "addons": {"dot_core": 1, "dot_game": 1, "dot_net": 1, "dot_server": 1}}
+{"format": 1, "addons": {"gs_core": 1, "gs_game": 1, "gs_net": 1, "gs_server": 1}}
 ```
 
 Before mounting, a client or server compares that against its own addons. If yours needs more than it has, it refuses with "This game needs GameSpice Net API level 2 or newer; this server has level 1" — the server's operator or the player updates, and nothing half-loads. An addon raises `LEVEL` when it adds something a game could use, and raises `OLDEST` when it removes or changes something; a pack built before that is refused by the newer host rather than breaking in it. So: build against the addons your players have (running `resolve-deps.sh` gets the newest), and when a newer addon breaks your game, release again.

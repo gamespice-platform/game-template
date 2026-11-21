@@ -2,7 +2,7 @@ extends "suite.gd"
 
 ## A real dedicated server and a real client in one process, over a real socket.
 ## The module loads BY PATH as a deployed one does; each side has its own [MultiplayerAPI].
-## It cannot see a PACK (the files are at res://): that is dot-server-deploy's template_client.
+## It cannot see a PACK (the files are at res://): that is gs-server-deploy's template_client.
 
 const PORT := 28911
 const CLIENT_PEER := 7
@@ -27,7 +27,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	print("dot-game-template: a server and a client over a socket")
+	print("gs-game-template: a server and a client over a socket")
 	GSPaths.remove_tree(SERVER_DIR)
 	_test_kinds_fit()
 	_test_neutralise()

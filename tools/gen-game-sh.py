@@ -111,7 +111,7 @@ def main():
     target = os.path.join(game, "game.sh")
     if check:
         if not os.path.exists(target) or open(target).read() != text:
-            sys.exit("game.sh is out of date: run dot-game-template/tools/gen-game-sh.py .")
+            sys.exit("game.sh is out of date: run gs-game-template/tools/gen-game-sh.py .")
         return
     with open(target, "w") as f:
         f.write(text)

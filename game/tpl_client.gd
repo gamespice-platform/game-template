@@ -203,7 +203,7 @@ func _join() -> void:
 	net.service_scope = &"client"
 	net.local_peer_id = multiplayer.get_unique_id()
 	# The game drives the ticks (see _physics_process), and reads no config file: a stale
-	# user://dot_net.json would otherwise choose this game's tick rate for it.
+	# user://gs_net.json would otherwise choose this game's tick rate for it.
 	net.auto_tick = false
 	net.config_file = ""
 	# A placeholder rate. The server's arrives in the hello and replaces it.

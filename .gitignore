@@ -3,28 +3,28 @@
 /android/
 
 # THIS LIST IS THE DEPENDENCY MANIFEST. Every /addons/<name> line below is an addon this
-# game uses, and nothing else keeps that list: dot-bootstrap and dot-ci's resolve-deps.sh
+# game uses, and nothing else keeps that list: gs-bootstrap and gs-ci's resolve-deps.sh
 # both read these lines and link exactly these addons. The repository that gains a
 # dependency is the repository that has to ignore its link, so the list cannot go stale.
 # Keep it to what the game actually uses -- a pack is checked against the addons it names.
-/addons/dot_core
-/addons/dot_profile
-/addons/dot_net
-/addons/dot_server
-/addons/dot_game
-/addons/dot_workbench
-/addons/dot_ui
-/addons/dot_input
-/addons/dot_save
-/addons/dot_settings
-/addons/dot_menu
-/addons/dot_console
-/addons/dot_chat
-/addons/dot_vote
-/addons/dot_map
+/addons/gs_core
+/addons/gs_profile
+/addons/gs_net
+/addons/gs_server
+/addons/gs_game
+/addons/gs_workbench
+/addons/gs_ui
+/addons/gs_input
+/addons/gs_save
+/addons/gs_settings
+/addons/gs_menu
+/addons/gs_console
+/addons/gs_chat
+/addons/gs_vote
+/addons/gs_map
 
-# Where dot-ci's resolve-deps.sh clones the addons above, when you use it instead of
-# dot-bootstrap.
+# Where gs-ci's resolve-deps.sh clones the addons above, when you use it instead of
+# gs-bootstrap.
 /.deps/
 
 # Exports

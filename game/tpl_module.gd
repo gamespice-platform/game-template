@@ -9,7 +9,7 @@ const TplPaths := preload("tpl_paths.gd")
 ## What every server game repeats is [GSGameModule]'s; what is left is this game's.
 ## No `class_name`: a delivered pack's class names are never registered in the host.
 
-## The players' say over the arena: dot-vote's director, whose commands include the map
+## The players' say over the arena: gs-vote's director, whose commands include the map
 ## menu's server half. See [method _build_map_menu].
 var director: GSVoteDirector = null
 var vote_commands: GSVoteCommands = null

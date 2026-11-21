@@ -57,8 +57,8 @@ for f in "${FILES[@]}"; do
     [ -f "$f" ] || continue
     [[ "$f" == *.md ]] && continue
     grep -Iq . "$f" 2>/dev/null || continue          # text files only
-    if grep -qE '\btpl|\bTpl|dot-game-template' "$f"; then
-        sed -i -E "s/\\btpl/${NEW}/g; s/\\bTpl/${CAP}/g; s/dot-game-template/${REPO}/g" "$f"
+    if grep -qE '\btpl|\bTpl|gs-game-template' "$f"; then
+        sed -i -E "s/\\btpl/${NEW}/g; s/\\bTpl/${CAP}/g; s/gs-game-template/${REPO}/g" "$f"
         changed=$((changed + 1))
     fi
 done
@@ -76,10 +76,10 @@ done
 rm -rf .godot
 
 # The shipped cfg folder is named for the game id, which the sed above rewrote in the code.
-if [ -d cfg/game/dot-game-template ] && [ "$REPO" != "dot-game-template" ]; then
-    mv cfg/game/dot-game-template "cfg/game/${REPO}"
+if [ -d cfg/game/gs-game-template ] && [ "$REPO" != "gs-game-template" ]; then
+    mv cfg/game/gs-game-template "cfg/game/${REPO}"
 fi
 
-printf 'renamed %d file(s) and rewrote %d: tpl -> %s, Tpl -> %s, dot-game-template -> %s\n' \
+printf 'renamed %d file(s) and rewrote %d: tpl -> %s, Tpl -> %s, gs-game-template -> %s\n' \
     "$moved" "$changed" "$NEW" "$CAP" "$REPO"
 printf 'next: godot --headless --path . --import && tools/check.sh\n'

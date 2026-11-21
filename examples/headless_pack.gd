@@ -3,18 +3,18 @@ extends "suite.gd"
 const TplPaths := preload("../game/tpl_paths.gd")
 
 ## The rules a game must keep to be delivered as a pack, checked against this repository.
-## A pack mounts at res://dot_cloud/<owner>/<repo>/<version>/, where a `class_name` is never registered
+## A pack mounts at res://gs_cloud/<owner>/<repo>/<version>/, where a `class_name` is never registered
 ## and a bare "res://<your folder>/..." names the host's file; scanners that first find a planted violation refuse both.
 
-## Folders that never travel in a pack (dot-ci's package.sh drops them).
+## Folders that never travel in a pack (gs-ci's package.sh drops them).
 const NOT_SHIPPED := ["addons", "examples", "tools", "screenshots"]
 
-const MOUNT := "res://dot_cloud/you/dot-game-template/1.0.0"
+const MOUNT := "res://gs_cloud/you/gs-game-template/1.0.0"
 
 
 func _ready() -> void:
 	checks = 12
-	print("dot-game-template: what a delivered pack may contain")
+	print("gs-game-template: what a delivered pack may contain")
 	_test_the_scanners_see()
 	_test_this_repository()
 	_test_rebase()
@@ -29,7 +29,7 @@ func _test_the_scanners_see() -> void:
 		'var bad := "res://game/thing.tscn"',
 		'static var good := TplPaths.rebase("res://game/thing.tscn")',
 		'# "res://game/in_a_comment.tscn" is prose',
-		'var host := "res://addons/dot_core/thing.gd"',
+		'var host := "res://addons/gs_core/thing.gd"',
 	])
 	var found := bare_paths_in(planted, PackedStringArray(["game"]))
 	check(found.size() == 1 and found[0].contains("bad"),

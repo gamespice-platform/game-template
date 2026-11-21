@@ -25,8 +25,8 @@ GODOT="${GODOT:-godot}"
 RED=$'\033[31m'; GRN=$'\033[32m'; OFF=$'\033[0m'
 fails=0
 
-[ -e addons/dot_core ] || {
-    printf 'addons/ is empty. Link the addons first:\n  ../dot-ci/scripts/resolve-deps.sh .    (or ./bootstrap.sh inside the family tree)\n' >&2
+[ -e addons/gs_core ] || {
+    printf 'addons/ is empty. Link the addons first:\n  ../gs-ci/scripts/resolve-deps.sh .    (or ./bootstrap.sh inside the family tree)\n' >&2
     exit 2
 }
 
@@ -86,13 +86,13 @@ if [ "${1:-}" != "--quick" ]; then
         printf '  %sFAIL%s tools/rename.sh refused a good name\n' "$RED" "$OFF"
         fails=$((fails + 1))
     else
-        left="$(cd "$copy" && grep -rlE '\btpl|\bTpl|dot-game-template' --exclude-dir=addons --exclude-dir=.git --exclude='*.md' . ; \
+        left="$(cd "$copy" && grep -rlE '\btpl|\bTpl|gs-game-template' --exclude-dir=addons --exclude-dir=.git --exclude='*.md' . ; \
             find . -name 'tpl_*' -not -path './addons/*')"
         if [ -n "$left" ]; then
             printf '  %sFAIL%s the old names survived the rename in:\n%s\n' "$RED" "$OFF" "$left"
             fails=$((fails + 1))
         else
-            printf '  %sok%s   no trace of tpl or dot-game-template is left\n' "$GRN" "$OFF"
+            printf '  %sok%s   no trace of tpl or gs-game-template is left\n' "$GRN" "$OFF"
         fi
         run_checks "$copy"
     fi
