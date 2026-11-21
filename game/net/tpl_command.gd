@@ -1,4 +1,4 @@
-extends DotNetInput
+extends GSNetInput
 
 ## One tick of a player's intent: the ONLY thing a client sends about itself.
 ## Clients send inputs, never state: one that says "pushing up-left" can only move as fast as
@@ -10,12 +10,12 @@ var move: Vector2 = Vector2.ZERO
 
 ## Eight bits per axis. The client predicts with the DECODED value (see TplBridge.client_tick),
 ## so the server and the client simulate the same number and never disagree about it.
-func _write(writer: DotNetWriter) -> void:
+func _write(writer: GSNetWriter) -> void:
 	writer.write_float_range(move.x, -1.0, 1.0, 8)
 	writer.write_float_range(move.y, -1.0, 1.0, 8)
 
 
-func _read(reader: DotNetReader) -> void:
+func _read(reader: GSNetReader) -> void:
 	move = Vector2(reader.read_float_range(-1.0, 1.0, 8), reader.read_float_range(-1.0, 1.0, 8))
 
 
@@ -25,11 +25,11 @@ func _sanitise() -> void:
 	move = move.limit_length(1.0)
 
 
-## Given to a silent player: stop moving. DotNetInput calls this in place of a held move.
+## Given to a silent player: stop moving. GSNetInput calls this in place of a held move.
 func _neutralise() -> void:
 	move = Vector2.ZERO
 
 
-func _equals(other: DotNetInput) -> bool:
+func _equals(other: GSNetInput) -> bool:
 	return other != null and other.get_script() == get_script() \
 		and (other.get("move") as Vector2).is_equal_approx(move)

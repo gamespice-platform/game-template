@@ -9,8 +9,8 @@ game.sh differs from what the template and game.conf produce (CI runs this).
 game.conf is KEY=VALUE lines, shell quoting, '#' comments:
   GAME_NAME, PACK, EXTRA_PACKS, SUITES      the settings every game has
   FEATURES="soak weapon_art ..."            blocks of the template to keep (see FEATURES)
-  DEFS_ACH="res://game/x.gd:catalogue"      with the defs feature: static method returning the DotAchievementCatalogue
-  DEFS_LB="res://game/y.gd:boards"          ... and the one returning Array[DotLeaderboardDef] (either may be empty)
+  DEFS_ACH="res://game/x.gd:catalogue"      with the defs feature: static method returning the GSAchievementCatalogue
+  DEFS_LB="res://game/y.gd:boards"          ... and the one returning Array[GSLeaderboardDef] (either may be empty)
   SOAK_ARG (default MAP), SOAK_FLAGS        soak: help-text word, extra godot flags ("--fixed-fps 60 ")
   TIMEOUT_DEFAULT (default 900), TIMEOUT_NOTE   default per-suite timeout and a help-text note (\\n for a newline)
   SUITE_TIMEOUTS="suite=secs ..."           with the suite_timeouts feature

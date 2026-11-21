@@ -1,4 +1,4 @@
-extends DotNetBehaviour
+extends GSNetBehaviour
 
 const TplCommand := preload("tpl_command.gd")
 const TplGame := preload("../tpl_game.gd")
@@ -20,13 +20,13 @@ var net_score: int = 0
 ## unit, far below a pixel. A server and its clients always mount the same version of this
 ## file, so a field can be added anywhere; declare it, and copy it in the three methods below.
 func _register_net_vars() -> void:
-	replicate(&"net_x", DotNetVar.Type.FLOAT_RANGE).range_of(0.0, TplGame.ARENA.x).bits(16).interpolated()
-	replicate(&"net_y", DotNetVar.Type.FLOAT_RANGE).range_of(0.0, TplGame.ARENA.y).bits(16).interpolated()
-	replicate(&"net_score", DotNetVar.Type.UINT).bits(16)
+	replicate(&"net_x", GSNetVar.Type.FLOAT_RANGE).range_of(0.0, TplGame.ARENA.x).bits(16).interpolated()
+	replicate(&"net_y", GSNetVar.Type.FLOAT_RANGE).range_of(0.0, TplGame.ARENA.y).bits(16).interpolated()
+	replicate(&"net_score", GSNetVar.Type.UINT).bits(16)
 
 
 ## One tick of the owner's intent. On the server it has already been sanitised.
-func _net_apply_input(input: DotNetInput, _tick: int) -> void:
+func _net_apply_input(input: GSNetInput, _tick: int) -> void:
 	var command := input as TplCommand
 	if command != null and player != null:
 		player.intent = command.move

@@ -64,7 +64,7 @@ func _ready() -> void:
 	who.position = target
 	check(game.collect(who) == 2, "standing on a coin collects it")
 	check(who.score == game.config.coin_value, "and scores config.coin_value (%d)" % who.score)
-	var binder := DotGameConfigBinder.create(game.config, "tpl", "tpl")
+	var binder := GSGameConfigBinder.create(game.config, "tpl", "tpl")
 	check(binder.schema().size() == 2 and binder.schema()[0]["key"] == "coin_value", "the config's fields reach dot-game's binder (cvars, yml, workbench)")
 	check(moved == [2] and game.coins[2] != target, "and the coin reappears elsewhere")
 	check(game.coins[2].distance_to(who.position) >= TplGame.PLAYER_RADIUS * 3.0,
@@ -84,10 +84,10 @@ func _ready() -> void:
 	command.sanitise(60)
 	check(is_equal_approx(command.move.length(), 1.0), "a (1, 1) input is cut to length 1 by the server")
 	command.move = Vector2(0.37, -0.81)
-	var writer := DotNetWriter.new()
+	var writer := GSNetWriter.new()
 	command.write(writer)
 	var read := TplCommand.new()
-	read.read(DotNetReader.new(writer.to_bytes()))
+	read.read(GSNetReader.new(writer.to_bytes()))
 	check(read.move.distance_to(command.move) < 0.01, "and one survives the wire to within a hundredth")
 	done()
 

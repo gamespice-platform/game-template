@@ -1,6 +1,6 @@
-extends DotGameCheckSuite
+extends GSGameCheckSuite
 
-## TplConfig through DotGameConfigBinder: fields, cvars, strict refusal, the diff, layers in a fresh process and the shipped cfg files.
+## TplConfig through GSGameConfigBinder: fields, cvars, strict refusal, the diff, layers in a fresh process and the shipped cfg files.
 ## Run: godot --headless --path . res://examples/headless_config.tscn
 
 const TplConfig := preload("../game/tpl_config.gd")
@@ -13,7 +13,7 @@ const GAME := "dot-game-template"
 
 
 func _ready() -> void:
-	DotLog.set_level(DotLog.Level.FATAL)
+	GSLog.set_level(GSLog.Level.FATAL)
 	_run.call_deferred()
 
 
@@ -40,9 +40,9 @@ func _run() -> void:
 	for k in ["coin_value", "extra_coins"]:
 		_check(keys.has(k), "%s is exposed" % k)
 
-	var console := DotConsole.new()
+	var console := GSConsole.new()
 	add_child(console)
-	binder.bind_cvars(console.cvar, DotConVar.FLAG_ARCHIVE, console.has_name)
+	binder.bind_cvars(console.cvar, GSConVar.FLAG_ARCHIVE, console.has_name)
 	console.set_cvar("tpl_coin_value", "7")
 	_check(config.coin_value == 7 and binder.source_of("coin_value") == "cvar", "a cvar writes the field")
 	_check(binder.diff_yaml().contains("coin_value: 7"), "the diff names the edit")
@@ -67,7 +67,7 @@ func _run() -> void:
 	_check(config.extra_coins == 5000, "extra coins pass the old cap of 200")
 	console.set_cvar("tpl_coin_value", "0")
 	# The pinned GameSpice Server (v0.1.32) still clamps a cvar to its floor; a release carrying
-	# "DotConVar refuses out-of-range values" keeps 100000 here. Until the lock moves to it, what
+	# "GSConVar refuses out-of-range values" keeps 100000 here. Until the lock moves to it, what
 	# must hold is that the below-floor value 0 never lands.
 	_check(config.coin_value >= 1, "a value below the floor never lands")
 
@@ -116,12 +116,12 @@ func _layers() -> void:
 	_check(text.contains("coin=5") and text.contains("coin_src=env"), "the environment beats the cfg file")
 	_write(file, "no_such_key: 1\n")
 	_check(_child().contains("PROBE ok=false"), "strict: an unknown key in the file is refused")
-	var removed := DotPaths.remove_tree(ProjectSettings.globalize_path(ROOT))
+	var removed := GSPaths.remove_tree(ProjectSettings.globalize_path(ROOT))
 	_check(removed.ok and not DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(ROOT)), "the per-process cfg fixture directory is removed", ROOT if removed.ok else str(removed.error))
 
 
 ## The shipped cfg files hold every key, in step with TplConfig.
-func _templates(binder: DotGameConfigBinder) -> void:
+func _templates(binder: GSGameConfigBinder) -> void:
 	var files := binder.template_files()
 	_check(files.size() == 1, "one shipped cfg file", str(files.size()))
 	var stale := PackedStringArray()

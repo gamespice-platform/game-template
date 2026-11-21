@@ -8,12 +8,12 @@ const TplWorkshop := preload("tpl_workshop.gd")
 
 const CHANNEL := "tpl.client"
 
-## What a player runs: `scenes/tpl_client.tscn`, offline, or joined to a server when the shell's [DotClientLink] exists.
+## What a player runs: `scenes/tpl_client.tscn`, offline, or joined to a server when the shell's [GSClientLink] exists.
 ## Keys are read directly because project.godot's input map does not travel in a pack.
-## [DotGameClient] supplies the cover, settings, Escape menu, console, Tab board, M map menu and Y chat: see [method _ready].
+## [GSGameClient] supplies the cover, settings, Escape menu, console, Tab board, M map menu and Y chat: see [method _ready].
 
 ## The shell's link, when the shell sets it; otherwise found in the registry.
-var link: DotClientLink = null
+var link: GSClientLink = null
 
 ## When valid, steers instead of the keyboard: `func() -> Vector2`. How the suites drive a
 ## real client, and how a bot would.
@@ -22,7 +22,7 @@ var steer: Callable = Callable()
 var game: TplGame = null
 var view: TplView = null
 var bridge: TplBridge = null
-var net: DotNetManager = null
+var net: GSNetManager = null
 
 ## Which player is this client's. Offline it is always 1.
 var local_id: int = 0
@@ -32,16 +32,16 @@ var workshop: TplWorkshop = null
 
 ## GameSpice Game's platform layer: the loading cover (its [code]gate[/code]), the menu, the
 ## console, the keys. See [method _ready].
-var platform: DotGameClient = null
+var platform: GSGameClient = null
 
 var _hud: Label = null
 var _hud_root: Control = null
 
 ## The Escape menu and the settings behind it. See [method _build_menu].
-var settings: DotMenuSettings = null
+var settings: GSMenuSettings = null
 
 ## The chat box. See [method _build_chat].
-var chat: DotChatWindow = null
+var chat: GSChatWindow = null
 var _touching: bool = false
 var _touch_at: Vector2 = Vector2.ZERO
 
@@ -50,14 +50,14 @@ func _ready() -> void:
 	# First, before anything is drawn: the loading cover (GameSpice Core's load gate). Add your own
 	# holds on `platform.gate`: `gate.hold(&"map", "Loading")` now, `gate.release(&"map")` when
 	# built. Nothing else is held at first but the local player.
-	platform = DotGameClient.new()
+	platform = GSGameClient.new()
 	platform.link = link
 	platform.require_camera = false
 	platform.spawned_fn = func() -> bool: return game != null and game.player(local_id) != null
 	# A 2D game played with a finger or a held mouse button: the pointer stays free.
 	platform.capture_pointer = false
 	add_child(platform)
-	link = platform.link as DotClientLink
+	link = platform.link as GSClientLink
 	var offline := platform.offline
 	game = TplGame.new()
 	game.authoritative = offline
@@ -86,10 +86,10 @@ func _ready() -> void:
 	platform.chat = chat
 	platform.board_snapshot_fn = board_snapshot
 	platform.maps_rows_fn = func() -> Array: return TplArenas.rows(game.arena["id"])
-	platform.maps_change_fn = func(id: StringName) -> DotResult: return game.change_arena(id)
+	platform.maps_change_fn = func(id: StringName) -> GSResult: return game.change_arena(id)
 	platform.maps_title = "Change arena"
 	platform.maps_noun = "arenas"
-	DotLog.result(CHANNEL, "the menu and the console", platform.setup())
+	GSLog.result(CHANNEL, "the menu and the console", platform.setup())
 	_dress_board()
 	if offline:
 		# Solo only: subscribed map packs join the M list as "Name [Pack]". A server never does.
@@ -103,23 +103,23 @@ func _ready() -> void:
 		_join()
 
 
-## Settings and the Escape menu, from GameSpice Menu; [DotGameClient] sets them up.
+## Settings and the Escape menu, from GameSpice Menu; [GSGameClient] sets them up.
 ## Only the stock settings this game can apply (window, V-Sync, frame-rate cap, theme, counter):
 ## a switch that changes nothing is worse than none. Add groups back as the game grows them.
 func _build_menu() -> void:
-	settings = DotMenuSettings.new()
+	settings = GSMenuSettings.new()
 	settings.name = "Settings"
 	settings.directory = "user://tpl_settings"
 	settings.app_namespace = &"tpl"
-	settings.schema = DotMenuStock.declare(DotSettingsSchema.new(),
-		[DotMenuStock.GROUP_VIDEO, DotMenuStock.GROUP_INTERFACE] as Array[StringName], null,
+	settings.schema = GSMenuStock.declare(GSSettingsSchema.new(),
+		[GSMenuStock.GROUP_VIDEO, GSMenuStock.GROUP_INTERFACE] as Array[StringName], null,
 		[&"field_of_view", &"render_scale", &"fx_quality"] as Array[StringName])
-	settings.config = DotMenuConfig.new()
+	settings.config = GSMenuConfig.new()
 	settings.config.brand_name = "Coin Grab"
 	settings.config.show_help = false
 	settings.config.show_leave = false
 	platform.settings = settings
-	# Pass a Theme for your game's accent (GameSpice UI's DotHudPiece colours `highlight` and
+	# Pass a Theme for your game's accent (GameSpice UI's GSHudPiece colours `highlight` and
 	# `plate_edge`); null is the menu's theme alone.
 	platform.hud_accent = null
 
@@ -127,15 +127,15 @@ func _build_menu() -> void:
 ## The Tab board's columns. Connected, the rows are the server's roster plus the coins the
 ## module adds; offline, [method board_snapshot].
 func _dress_board() -> void:
-	var board: DotMenuScoreboard = platform.board as DotMenuScoreboard
+	var board: GSMenuScoreboard = platform.board as GSMenuScoreboard
 	if board == null:
 		return
 	board.title_text = "Coin Grab"
 	board.columns = [
 		{"key": &"name", "title": "Player", "width": 3.0},
-		{"key": &"coins", "title": "Coins", "kind": DotMenuScoreboard.KIND_NUMBER},
-		{"key": &"seconds", "title": "Time", "kind": DotMenuScoreboard.KIND_DURATION},
-		{"key": &"ping", "title": "Ping", "kind": DotMenuScoreboard.KIND_PING},
+		{"key": &"coins", "title": "Coins", "kind": GSMenuScoreboard.KIND_NUMBER},
+		{"key": &"seconds", "title": "Time", "kind": GSMenuScoreboard.KIND_DURATION},
+		{"key": &"ping", "title": "Ping", "kind": GSMenuScoreboard.KIND_PING},
 	]
 	board.sort_by = &"coins"
 
@@ -149,10 +149,10 @@ func board_snapshot() -> Dictionary:
 
 
 ## The chat box: Y opens it, Enter sends, Escape closes. This game routes no chat of its own: lines go to the server
-## through [method DotClientLink.send_chat] and return on [signal DotClientLink.chat_received]. `!sm` and `/sm` never
+## through [method GSClientLink.send_chat] and return on [signal GSClientLink.chat_received]. `!sm` and `/sm` never
 ## leave this machine (GameSpice Chat's self-mute); muted lines are dropped in [method _on_chat_line].
 func _build_chat(offline: bool) -> void:
-	chat = DotChatWindow.new()
+	chat = GSChatWindow.new()
 	chat.name = "Chat"
 	# No teams here, so no team-chat key (GameSpice UI's default is U).
 	chat.team_action = &""
@@ -162,7 +162,7 @@ func _build_chat(offline: bool) -> void:
 	chat.submitted.connect(_on_chat_submitted)
 	# The block list, made now rather than at the first `!sm`: it is what asks the server who
 	# is here, so it knows whose lines to drop before the first one arrives.
-	var _mutes := DotChatSelfMute.shared()
+	var _mutes := GSChatSelfMute.shared()
 	if not offline and link != null:
 		link.chat_received.connect(_on_chat_line)
 
@@ -179,7 +179,7 @@ func _on_chat_submitted(text: String, _channel: StringName) -> void:
 func _on_chat_line(payload: Dictionary) -> void:
 	# The server's own lines (`system`: votes, joins, `say`; `admin`), drawn as every game in
 	# the family draws them.
-	if DotGameChatClient.draw_server_line(chat, payload):
+	if GSGameChatClient.draw_server_line(chat, payload):
 		return
 	var kind := str(payload.get("kind", ""))
 	# `state` is not a line: it says whether something else carries this conversation.
@@ -188,7 +188,7 @@ func _on_chat_line(payload: Dictionary) -> void:
 	var speaker := str(payload.get("name", ""))
 	var userid := int(payload.get("userid", 0))
 	# Matched by the userid as well as the name, so a renamed player stays muted.
-	if DotChatSelfMute.shared().is_muted(speaker, str(userid)):
+	if GSChatSelfMute.shared().is_muted(speaker, str(userid)):
 		return
 	# The speaker in their disc's colour: a player id here is their userid.
 	chat.add_said(speaker, str(payload.get("text", "")), TplGame.colour_of(userid))
@@ -196,7 +196,7 @@ func _on_chat_line(payload: Dictionary) -> void:
 
 ## Builds this end's netcode and tells the server we are here.
 func _join() -> void:
-	net = DotNetManager.new()
+	net = GSNetManager.new()
 	net.name = "Net"
 	net.is_server = false
 	# Its own registry name, so a server and a client in one process do not replace each other.

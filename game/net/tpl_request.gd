@@ -20,7 +20,7 @@ func _type_name() -> StringName:
 	return REQUEST
 
 
-func _validate() -> DotResult:
+func _validate() -> GSResult:
 	if kind < 0 or kind >= Ask.size():
-		return DotResult.fail(DotError.CODE_INVALID, "Unknown ask %d." % kind)
-	return DotResult.success(true)
+		return GSResult.fail(GSError.CODE_INVALID, "Unknown ask %d." % kind)
+	return GSResult.success(true)

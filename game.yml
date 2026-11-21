@@ -35,7 +35,7 @@ max_players: 16
 #                          (bot data, rulesets)
 #   maps:                  the game's delivered maps, one pack per map, fetched when the
 #                          server changes to one; turn them into dot-map entries with
-#                          DotMapCatalogue.add_delivered(key, scene)
+#                          GSMapCatalogue.add_delivered(key, scene)
 #
 # dependencies:
 #   - you/shared-art

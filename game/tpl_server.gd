@@ -17,7 +17,7 @@ func _ready() -> void:
 	var binder := TplConfig.make_binder(game.config, "user://cfg/tpl.json")
 	var loaded := binder.load_layers()
 	if not loaded.ok:
-		DotGameConfigBinder.fail_boot(get_tree(), loaded)
+		GSGameConfigBinder.fail_boot(get_tree(), loaded)
 		return
 	game.config_binder = binder
 	add_child(game)

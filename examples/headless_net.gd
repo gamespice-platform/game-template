@@ -15,8 +15,8 @@ const TplGame := preload("res://game/tpl_game.gd")
 const TplLink := preload("res://game/net/tpl_link.gd")
 const TplRequest := preload("res://game/net/tpl_request.gd")
 
-var _server: DotServer = null
-var _link: DotClientLink = null
+var _server: GSServer = null
+var _link: GSClientLink = null
 var _client: Node = null
 var _client_side: Node = null
 
@@ -28,7 +28,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	print("dot-game-template: a server and a client over a socket")
-	DotPaths.remove_tree(SERVER_DIR)
+	GSPaths.remove_tree(SERVER_DIR)
 	_test_kinds_fit()
 	_test_neutralise()
 	await _test_map_menu_solo()
@@ -49,7 +49,7 @@ func _run() -> void:
 	if _server != null:
 		_server.shutdown("done")
 	await get_tree().process_frame
-	DotPaths.remove_tree(SERVER_DIR)
+	GSPaths.remove_tree(SERVER_DIR)
 	finish()
 
 
@@ -78,8 +78,8 @@ func _test_map_menu_solo() -> void:
 	var solo: Node = (load(CLIENT_SCENE) as PackedScene).instantiate()
 	add_child(solo)
 	await get_tree().process_frame
-	var menu: DotMenu = (solo.get("settings") as DotMenuSettings).menu
-	var maps: DotMenuMaps = menu.maps
+	var menu: GSMenu = (solo.get("settings") as GSMenuSettings).menu
+	var maps: GSMenuMaps = menu.maps
 	check(maps != null and not maps.is_online() and InputMap.has_action(menu.maps_action),
 		"M is bound, and with no server the menu is solo")
 	menu.open_maps()
@@ -104,7 +104,7 @@ func _boot() -> bool:
 	add_child(_client_side)
 	get_tree().set_multiplayer(MultiplayerAPI.create_default_interface(), server_side.get_path())
 	get_tree().set_multiplayer(MultiplayerAPI.create_default_interface(), _client_side.get_path())
-	var config := DotServerConfig.new()
+	var config := GSServerConfig.new()
 	config.hostname = "template test"
 	config.log_level = "warn"
 	config.port = PORT
@@ -118,24 +118,24 @@ func _boot() -> bool:
 	config.autoexec_config = ""
 	# Off, or this run never exits: the console reads stdin on a thread nothing can wake.
 	config.stdin_console_enabled = false
-	_server = DotServer.new()
+	_server = GSServer.new()
 	_server.name = "Server"
 	_server.config = config
 	_server.config_file = ""
 	_server.auto_boot = false
 	server_side.add_child(_server)
-	var booted: DotResult = await _server.boot()
+	var booted: GSResult = await _server.boot()
 	if not check(booted.ok, "the server listens on %d" % PORT):
 		done()
 		return false
 
 	# The descriptor comes from the module's script, loaded here rather than preloaded: the
 	# order scripts load in is the order a deployed server has.
-	var descriptor: DotGameDescriptor = (load(MODULE) as GDScript).call("game_descriptor")
+	var descriptor: GSGameDescriptor = (load(MODULE) as GDScript).call("game_descriptor")
 	_server.games.add_game(descriptor)
-	var changed: DotResult = await _server.games.change_game(descriptor.game_id, "boot")
+	var changed: GSResult = await _server.games.change_game(descriptor.game_id, "boot")
 	check(changed.ok, "the server scene loads and the world registers itself")
-	var loaded: DotResult = await _server.modules.load_module(MODULE)
+	var loaded: GSResult = await _server.modules.load_module(MODULE)
 	check(loaded.ok, "the module loads by path")
 	done()
 	return changed.ok and loaded.ok
@@ -146,7 +146,7 @@ func _test_join() -> bool:
 
 	# Named "Server" to match the server's node: RPCs are routed by path, and the name is the
 	# route. Any other name and the handshake itself goes nowhere.
-	_link = DotClientLink.new()
+	_link = GSClientLink.new()
 	_link.name = "Server"
 	_link.player_name = "Ada"
 	_client_side.add_child(_link)
@@ -207,7 +207,7 @@ func _test_a_coin() -> void:
 
 	# The Tab board, held on the real client: the server's roster over the socket, with the
 	# coins the module adds and this player picked out.
-	var menu: DotMenu = (_client.get("settings") as DotMenuSettings).menu
+	var menu: GSMenu = (_client.get("settings") as GSMenuSettings).menu
 	menu.scoreboard.open()
 	var arrived := await _until(func() -> bool:
 		return menu.scoreboard.rows().any(func(r: Dictionary) -> bool:
@@ -219,10 +219,10 @@ func _test_a_coin() -> void:
 
 ## GameSpice Game's "still loading", over the real socket: a player the server holds as behind their
 ## cover collects nothing, even standing on a coin, and collects again once the client's
-## `game.cover` report (the kind DotGameClient sends when its gate opens) lifts it.
+## `game.cover` report (the kind GSGameClient sends when its gate opens) lifts it.
 func _test_still_loading() -> void:
 	section("a player behind their loading cover collects nothing")
-	var module := _server.modules.get_module("tpl") as DotGameModule
+	var module := _server.modules.get_module("tpl") as GSGameModule
 	var world := _server_game()
 	var who: Variant = _server_player()
 	check(module.can_be_harmed(who.id), "settled in, the player is in play")
@@ -237,8 +237,8 @@ func _test_still_loading() -> void:
 	check(who.score == score_before and world.coins[0] == coin_before,
 		"standing on a coin collects nothing (%d, was %d)" % [who.score, score_before])
 
-	# The client says its cover lifted, as DotGameClient does when the gate opens.
-	var sent := DotGameClient.report_cover(_link, false)
+	# The client says its cover lifted, as GSGameClient does when the gate opens.
+	var sent := GSGameClient.report_cover(_link, false)
 	var lifted := await _until(func() -> bool: return not module.is_loading(who.id))
 	check(sent and lifted, "the client's report lifts it")
 	check(await _until(func() -> bool: return who.score > score_before),
@@ -250,7 +250,7 @@ func _test_still_loading() -> void:
 ## server's own lines are drawn, `!sm` never reaches the server, and typing does not steer.
 func _test_chat() -> void:
 	section("chat")
-	var chat: DotChatWindow = _client.get("chat")
+	var chat: GSChatWindow = _client.get("chat")
 	var heard: Array = []
 	_server.chat.message_sent.connect(func(_session: Object, text: String, _team: bool) -> void: heard.append(text))
 	chat.call(&"_on_submitted", "hello from Ada")
@@ -270,7 +270,7 @@ func _test_chat() -> void:
 	check(not heard.has("!sm") and not heard.has("sm"), "`!sm` is run on the client and never reaches the server")
 	check(chat.history().size() > rows_before, "and it answers in the box (%s)" % str(chat.history().back()))
 	# A muted player's lines are dropped. In memory only: the suite's list is not the player's.
-	var mutes: DotChatSelfMute = DotChatSelfMute.shared()
+	var mutes: GSChatSelfMute = GSChatSelfMute.shared()
 	var kept_path := mutes.path
 	mutes.path = ""
 	mutes.set_muted({"name": "Mallory"}, true)
@@ -278,7 +278,7 @@ func _test_chat() -> void:
 	check(not _shown(chat, "spam spam"), "a line from somebody this player muted is not drawn")
 	mutes.set_muted({"name": "Mallory"}, false)
 	mutes.path = kept_path
-	var console: DotConsoleController = (_client.get("platform") as DotGameClient).console as DotConsoleController
+	var console: GSConsoleController = (_client.get("platform") as GSGameClient).console as GSConsoleController
 	check(console != null and console.all_names().has("sm"), "the console has `sm` too")
 
 	# Typing is not steering: a player pressing right while the box is open moves nowhere.
@@ -300,7 +300,7 @@ func _test_chat() -> void:
 func _test_map_menu() -> void:
 	section("M: the map menu on a server")
 	var module: Node = _server.modules.get_module("tpl")
-	var maps: DotMenuMaps = ((_client.get("settings") as DotMenuSettings).menu).maps
+	var maps: GSMenuMaps = ((_client.get("settings") as GSMenuSettings).menu).maps
 	check(maps != null and maps.is_online(), "M is wired, and connected it asks the server")
 	maps.open()
 	check(await _until(func() -> bool: return maps.last_offer.has("maps")), "the server answers with its arenas")
@@ -313,7 +313,7 @@ func _test_map_menu() -> void:
 	maps.call(&"_chosen", &"pocket")
 	check(await _until(func() -> bool: return _server_game().get("arena")["id"] == &"pocket" and game.get("arena")["id"] == &"pocket"),
 		"alone, the choice is the change, with no vote (%s)" % maps.last_said)
-	check(not (module.get("director") as DotVoteDirector).is_voting(), "and no ballot opened")
+	check(not (module.get("director") as GSVoteDirector).is_voting(), "and no ballot opened")
 
 	# sv_map_menu_alone 0 turns that off: the lone player is told a change needs a vote of the
 	# players here, and no ballot opens (GameSpice Vote's minimum is two humans).
@@ -322,7 +322,7 @@ func _test_map_menu() -> void:
 	maps.last_said = ""
 	maps.call(&"_chosen", &"gold_rush")
 	check(await _until(func() -> bool: return "only one" in maps.last_said), "with sv_map_menu_alone 0, alone, there is no change (%s)" % maps.last_said)
-	check(not (module.get("director") as DotVoteDirector).is_voting() and _server_game().get("arena")["id"] == &"pocket",
+	check(not (module.get("director") as GSVoteDirector).is_voting() and _server_game().get("arena")["id"] == &"pocket",
 		"and no ballot, and still Pocket")
 	alone_cvar.force_set("1")
 
@@ -332,7 +332,7 @@ func _test_map_menu() -> void:
 	bob_side.name = "BobSide"
 	add_child(bob_side)
 	get_tree().set_multiplayer(MultiplayerAPI.create_default_interface(), bob_side.get_path())
-	var bob := DotClientLink.new()
+	var bob := GSClientLink.new()
 	bob.name = "Server"
 	bob.player_name = "Bob"
 	bob_side.add_child(bob)
@@ -340,7 +340,7 @@ func _test_map_menu() -> void:
 	bob.spawned.connect(func() -> void: bob_in[0] = true)
 	await bob.connect_to_server("127.0.0.1:%d" % PORT)
 	check(await _until(func() -> bool: return bob_in[0] and _server.playing_sessions().size() == 2), "a second player signs on and is playing")
-	var _lifted := DotGameClient.report_cover(bob, false)
+	var _lifted := GSGameClient.report_cover(bob, false)
 	maps.last_offer = {}
 	maps.open()
 	check(await _until(func() -> bool: return maps.last_offer.has("maps")), "the server answers again")
@@ -350,23 +350,23 @@ func _test_map_menu() -> void:
 		"with a second human here, a player who is not staff gets the list as a vote, by sv_map_menu_flag's default (%s)" % str(maps.describe()["offer"]))
 
 	# Rocking the vote waits two minutes into an arena by default; this suite has not got them.
-	(module.get("director") as DotVoteDirector).rules.rtv_delay_sec = 0.0
+	(module.get("director") as GSVoteDirector).rules.rtv_delay_sec = 0.0
 	maps.last_said = ""
 	maps.call(&"_chosen", &"gold_rush")
 	check(await _until(func() -> bool: return "Nominated" in maps.last_said), "choosing one nominates it (%s)" % maps.last_said)
 	# With two players one asking is not most of them: the choice only nominated it. The ballot
 	# opens when both have typed !rtv.
-	check(not (module.get("director") as DotVoteDirector).is_voting(), "one player's choice is a nomination, not a ballot")
+	check(not (module.get("director") as GSVoteDirector).is_voting(), "one player's choice is a nomination, not a ballot")
 	bob.send_chat("!rtv")
 	_link.send_chat("!rtv")
-	check(await _until(func() -> bool: return (module.get("director") as DotVoteDirector).is_voting()), "and a ballot opens when both players ask")
+	check(await _until(func() -> bool: return (module.get("director") as GSVoteDirector).is_voting()), "and a ballot opens when both players ask")
 	# The ballot is in chat: "Type !vote and a number: 1. Pocket ...". Nominated, Pocket is first.
 	# Chat is rate limited per player, so each waits a moment after the !rtv it just sent.
 	await get_tree().create_timer(3.0).timeout
 	bob.send_chat("!vote 1")
 	_link.send_chat("!vote 1")
 	check(await _until(func() -> bool: return _server_game().get("arena")["id"] == &"gold_rush" and game.get("arena")["id"] == &"gold_rush"),
-		"the vote's winner is played: the server and the client are on Gold Rush (%s)" % str((module.get("director") as DotVoteDirector).describe_lines()))
+		"the vote's winner is played: the server and the client are on Gold Rush (%s)" % str((module.get("director") as GSVoteDirector).describe_lines()))
 	check(await _until(func() -> bool: return (game.get("coins") as Array).size() == 24),
 		"with Gold Rush's coins")
 
@@ -392,13 +392,13 @@ func _test_map_menu() -> void:
 ## forced, beside a control drawn at the engine's fraction. Under half a step is a stall, over one and a half a double.
 func _test_drawn_through_a_slip() -> void:
 	section("your own player is drawn through a frame with no tick, or two")
-	var net: DotNetManager = _client.get("net")
+	var net: GSNetManager = _client.get("net")
 	var view: Node = _client.get("view")
 	await get_tree().process_frame
 	check(view.get("render_clock") == net.clock and is_equal_approx(float(view.call(&"frame_alpha")), net.clock.render_alpha()),
 		"the connected client's view draws at its netcode clock's render alpha")
 
-	var clock := DotNetClock.new(60)
+	var clock := GSNetClock.new(60)
 	var dt := clock.tick_duration()
 	var game := TplGame.new()
 	add_child(game)
@@ -467,7 +467,7 @@ func _test_a_module_reload() -> void:
 
 
 ## Whether any row of the chat box's history has [param text] in it.
-func _shown(chat: DotChatWindow, text: String) -> bool:
+func _shown(chat: GSChatWindow, text: String) -> bool:
 	for row: Variant in chat.history():
 		for part: Variant in row:
 			if text in str((part as Dictionary).get("text", "")):
@@ -494,9 +494,9 @@ func _test_a_lost_input() -> void:
 	var sent: Array = (client_bridge.link as RecordingLink).sent
 	server_bridge.add_player(CLIENT_PEER, 1, "Ada")
 	server_bridge.net.add_peer(CLIENT_PEER)
-	var buffer: DotNetInput.Buffer = server_bridge.net.input_buffer_for(CLIENT_PEER)
+	var buffer: GSNetInput.Buffer = server_bridge.net.input_buffer_for(CLIENT_PEER)
 	var lost_tick := 10
-	var held: DotNetInput = null
+	var held: GSNetInput = null
 
 	# The client runs two ticks ahead of the server, as its clock does.
 	for tick in range(1, 40):
@@ -539,7 +539,7 @@ func _bridge_pair_half(is_server: bool) -> TplBridge:
 	var game := TplGame.new()
 	game.authoritative = is_server
 	side.add_child(game)
-	var net := DotNetManager.new()
+	var net := GSNetManager.new()
 	net.is_server = is_server
 	net.local_peer_id = 1 if is_server else CLIENT_PEER
 	net.auto_tick = false
@@ -560,7 +560,7 @@ func _bridge_pair_half(is_server: bool) -> TplBridge:
 
 
 func _server_game() -> Node:
-	return (_server.modules.get_module("tpl") as DotGameModule).game as Node
+	return (_server.modules.get_module("tpl") as GSGameModule).game as Node
 
 
 func _server_player() -> Variant:

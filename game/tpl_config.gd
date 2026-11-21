@@ -1,4 +1,4 @@
-extends DotConfig
+extends GSConfig
 
 ## This game's server tunables. Every exported field becomes a `tpl_<field>` cvar, a game.yml
 ## key, a `TPL_*` environment variable and a `--tpl-*` flag, and shows in GameSpice Workbench.
@@ -10,8 +10,8 @@ const CFG_FILES := {"Rules": "rules"}
 
 
 ## The binder every entry point uses (server scene, suites): [param config] layered, one cfg file per [constant CFG_FILES] entry.
-static func make_binder(config: DotConfig, json_path := "") -> DotGameConfigBinder:
-	var b := DotGameConfigBinder.create(config, "dot-game-template", "tpl", json_path)
+static func make_binder(config: GSConfig, json_path := "") -> GSGameConfigBinder:
+	var b := GSGameConfigBinder.create(config, "dot-game-template", "tpl", json_path)
 	b.grouped = true
 	b.group_files = CFG_FILES
 	return b

@@ -23,7 +23,7 @@ const INPUT_COPIES := 5
 signal hello_received(player_id: int)
 
 var game: TplGame = null
-var net: DotNetManager = null
+var net: GSNetManager = null
 var link: TplLink = null
 
 ## Client side: the round trip in ms. GameSpice Net owns no socket, so it cannot measure one.
@@ -43,8 +43,8 @@ var _nets: Dictionary = {}
 
 
 ## The netcode's numbers. One function for both ends, so they cannot disagree.
-static func net_config(tick_rate: int) -> DotNetConfig:
-	var config := DotNetConfig.new()
+static func net_config(tick_rate: int) -> GSNetConfig:
+	var config := GSNetConfig.new()
 	config.tick_rate = tick_rate
 	# About twenty snapshots a second, and the rate has to divide the tick rate exactly.
 	config.snapshot_rate = 20
@@ -56,16 +56,16 @@ static func net_config(tick_rate: int) -> DotNetConfig:
 	return config
 
 
-func attach(p_game: TplGame, p_net: DotNetManager) -> DotResult:
+func attach(p_game: TplGame, p_net: GSNetManager) -> GSResult:
 	game = p_game
 	net = p_net
 	net.send_fn = _send
 
 	# The direction is enforced on receipt, against the transport's idea of the sender.
 	var event := net.messages.register(TplEvent.NAME, TplEvent,
-		DotNetMessage.Delivery.RELIABLE, DotNetMessage.Direction.TO_CLIENT)
+		GSNetMessage.Delivery.RELIABLE, GSNetMessage.Direction.TO_CLIENT)
 	var request := net.messages.register(TplRequest.REQUEST, TplRequest,
-		DotNetMessage.Delivery.RELIABLE, DotNetMessage.Direction.TO_SERVER)
+		GSNetMessage.Delivery.RELIABLE, GSNetMessage.Direction.TO_SERVER)
 	if not event.ok or not request.ok:
 		return event if not event.ok else request
 	net.messages.on(TplEvent.NAME, _on_event)
@@ -73,7 +73,7 @@ func attach(p_game: TplGame, p_net: DotNetManager) -> DotResult:
 	if net.is_server:
 		game.coin_moved.connect(_on_coin_moved)
 		game.arena_changed.connect(_on_arena_changed)
-	return DotResult.success(self)
+	return GSResult.success(self)
 
 
 ## Puts the link under the node named `Server` on this end. See [TplLink].
@@ -82,15 +82,15 @@ func open_link(parent: Node) -> void:
 	link.bridge = self
 	# Not parent.add_child: the link sits under `Server` (RPCs route by path) but must die with
 	# this bridge, or a module reload leaves a second one and real clients' RPCs are lost.
-	# DotGameLink frees it with the bridge, without remove_child (which errors on teardown).
-	DotGameLink.attach(link, parent, self, TplLink.NODE_NAME)
+	# GSGameLink frees it with the bridge, without remove_child (which errors on teardown).
+	GSGameLink.attach(link, parent, self, TplLink.NODE_NAME)
 
 
 ## Every byte GameSpice Net sends leaves here. Snapshots are its only unreliable traffic.
 func _send(peer_id: int, payload: PackedByteArray, delivery: int) -> void:
 	if link == null:
 		return
-	if delivery == DotNetMessage.Delivery.UNRELIABLE:
+	if delivery == GSNetMessage.Delivery.UNRELIABLE:
 		link.send_snapshot(peer_id, payload)
 	elif net.is_server:
 		link.send_event(peer_id, payload)
@@ -100,7 +100,7 @@ func _send(peer_id: int, payload: PackedByteArray, delivery: int) -> void:
 
 ## Somebody finished joining. [param player_id] is their session's userid, which survives a
 ## reconnect where a peer id does not.
-func add_player(peer_id: int, player_id: int, display_name: String) -> DotResult:
+func add_player(peer_id: int, player_id: int, display_name: String) -> GSResult:
 	_player_of_peer[peer_id] = player_id
 	var who: TplGame.Player = game.add_player(player_id, display_name)
 	var registered := net.registry.register(_spawn(who, peer_id), 0, _tick, net.config)
@@ -112,7 +112,7 @@ func add_player(peer_id: int, player_id: int, display_name: String) -> DotResult
 	# Their READY can arrive before this: the two race on a fast connection.
 	if _ready_peers.has(peer_id):
 		_admit(peer_id)
-	return DotResult.success(who)
+	return GSResult.success(who)
 
 
 func remove_peer(peer_id: int) -> void:
@@ -121,7 +121,7 @@ func remove_peer(peer_id: int) -> void:
 	_ready_peers.erase(peer_id)
 	_player_of_peer.erase(peer_id)
 	if player_id != 0:
-		var body := DotNetWriter.new()
+		var body := GSNetWriter.new()
 		body.write_varint(_despawn(player_id))
 		game.remove_player(player_id)
 		for peer: int in _ready_peers:
@@ -141,7 +141,7 @@ func server_tick(tick: int) -> void:
 func _admit(peer_id: int) -> void:
 	if not net.peers().has(peer_id):
 		net.add_peer(peer_id)
-	var hello := DotNetWriter.new()
+	var hello := GSNetWriter.new()
 	hello.write_varint(int(_player_of_peer[peer_id]))
 	hello.write_uint(_tick, 32)
 	hello.write_uint(net.config.tick_rate, 8)
@@ -154,10 +154,10 @@ func _admit(peer_id: int) -> void:
 
 ## The arena, then its coins: the client takes the walls first, so no coin is ever outside them.
 func _tell_arena(peer_id: int) -> void:
-	var arena := DotNetWriter.new()
+	var arena := GSNetWriter.new()
 	arena.write_string(String(game.arena["id"]), 64)
 	_tell(peer_id, TplEvent.Kind.ARENA, arena.to_bytes())
-	var coins := DotNetWriter.new()
+	var coins := GSNetWriter.new()
 	coins.write_uint(game.coins.size(), 8)
 	for spot in game.coins:
 		_write_spot(coins, spot)
@@ -172,7 +172,7 @@ func _on_arena_changed(_id: StringName) -> void:
 
 
 func _on_coin_moved(index: int, spot: Vector2) -> void:
-	var body := DotNetWriter.new()
+	var body := GSNetWriter.new()
 	body.write_uint(index, 8)
 	_write_spot(body, spot)
 	for peer: int in _ready_peers:
@@ -185,7 +185,7 @@ func _tell(peer_id: int, kind: int, body: PackedByteArray) -> void:
 
 func _spawn_body(player_id: int) -> PackedByteArray:
 	var behaviour: TplPlayerNet = _nets[player_id]
-	var body := DotNetWriter.new()
+	var body := GSNetWriter.new()
 	body.write_varint(behaviour.identity.net_id)
 	body.write_varint(behaviour.identity.owner_peer_id)
 	body.write_varint(player_id)
@@ -198,9 +198,9 @@ func receive_input(peer_id: int, payload: PackedByteArray) -> void:
 		return
 	net.receive_ack_payload(peer_id, payload.slice(0, ACK_BYTES))
 	# This tick's command and the copies before it (see INPUT_COPIES), oldest first.
-	var commands := DotNetInput.read_batch(
-		DotNetReader.new(payload.slice(ACK_BYTES)),
-		func() -> DotNetInput: return TplCommand.new()
+	var commands := GSNetInput.read_batch(
+		GSNetReader.new(payload.slice(ACK_BYTES)),
+		func() -> GSNetInput: return TplCommand.new()
 	)
 	if commands.is_empty():
 		return
@@ -219,7 +219,7 @@ func receive_request(peer_id: int, payload: PackedByteArray) -> void:
 	net.receive(payload, peer_id)
 
 
-func _on_request(message: DotNetMessage) -> void:
+func _on_request(message: GSNetMessage) -> void:
 	var request := message as TplRequest
 	if request != null and request.kind == TplRequest.Ask.READY:
 		_ready_peers[request.sender_peer_id] = true
@@ -242,18 +242,18 @@ func client_tick(tick: int, intent: Vector2) -> void:
 	# Decoded again before it is kept or predicted with: the server simulates the quantised
 	# value. Kept as decoded, NOT sanitised, because it is resent as a copy and a decoded value
 	# encodes back to the same bits; TplGame.step bounds the length itself.
-	var bytes := DotNetWriter.new()
+	var bytes := GSNetWriter.new()
 	command.write(bytes)
 	var sent := TplCommand.new()
-	sent.read(DotNetReader.new(bytes.to_bytes()))
+	sent.read(GSNetReader.new(bytes.to_bytes()))
 	net.local_inputs().push(sent)
 
 	# The commands before this one come from the replay history GameSpice Net already keeps for
 	# reconciliation; this one goes last whatever the history did with it.
 	var copies: Array = Array(net.local_inputs().recent(INPUT_COPIES - 1, tick - 1))
 	copies.append(sent)
-	var batch := DotNetWriter.new()
-	DotNetInput.write_batch(batch, copies)
+	var batch := GSNetWriter.new()
+	GSNetInput.write_batch(batch, copies)
 	var payload := net.encode_ack()
 	payload.append_array(batch.to_bytes())
 	link.send_input(payload)
@@ -273,9 +273,9 @@ func receive_event(payload: PackedByteArray) -> void:
 	net.receive(payload, 1)
 
 
-func _on_event(message: DotNetMessage) -> void:
+func _on_event(message: GSNetMessage) -> void:
 	var event := message as TplEvent
-	var reader := DotNetReader.new(event.body)
+	var reader := GSNetReader.new(event.body)
 	match event.kind:
 		TplEvent.Kind.HELLO:
 			local_id = reader.read_varint()
@@ -324,7 +324,7 @@ func _adopt_rates(tick_rate: int, snapshot_rate: int) -> void:
 
 
 ## A node, a behaviour and an identity: what makes a player replicate.
-func _spawn(who: TplGame.Player, owner_peer: int) -> DotNetIdentity:
+func _spawn(who: TplGame.Player, owner_peer: int) -> GSNetIdentity:
 	var root := Node2D.new()
 	root.name = "Player%d" % who.id
 	root.position = who.position
@@ -335,11 +335,11 @@ func _spawn(who: TplGame.Player, owner_peer: int) -> DotNetIdentity:
 	root.add_child(behaviour)
 
 	# After the behaviour: an identity collects its behaviours when it enters the tree.
-	var identity := DotNetIdentity.new()
+	var identity := GSNetIdentity.new()
 	identity.owner_peer_id = owner_peer
 	# SHARED: the server decides and corrects, the owner predicts. SERVER would put the local
 	# player a whole round trip behind their own keyboard.
-	identity.authority = DotNetIdentity.Authority.SHARED
+	identity.authority = GSNetIdentity.Authority.SHARED
 	# Everybody sees everybody; the arena is one screen. A bigger world wants interest
 	# management here -- which is also the only anti-cheat that stops a wallhack.
 	identity.always_relevant = true
@@ -360,12 +360,12 @@ func _despawn(player_id: int) -> int:
 	return net_id
 
 
-static func _write_spot(writer: DotNetWriter, spot: Vector2) -> void:
+static func _write_spot(writer: GSNetWriter, spot: Vector2) -> void:
 	writer.write_float_range(spot.x, 0.0, TplGame.ARENA.x, 16)
 	writer.write_float_range(spot.y, 0.0, TplGame.ARENA.y, 16)
 
 
-static func _read_spot(reader: DotNetReader) -> Vector2:
+static func _read_spot(reader: GSNetReader) -> Vector2:
 	var x := reader.read_float_range(0.0, TplGame.ARENA.x, 16)
 	return Vector2(x, reader.read_float_range(0.0, TplGame.ARENA.y, 16))
 

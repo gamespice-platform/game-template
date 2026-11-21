@@ -4,7 +4,7 @@ const TplArenas := preload("../game/tpl_arenas.gd")
 const TplGame := preload("../game/tpl_game.gd")
 const TplWorkshop := preload("../game/tpl_workshop.gd")
 
-## What a subscribed map pack does to the solo arena list, against a fixture [DotContentIndex]:
+## What a subscribed map pack does to the solo arena list, against a fixture [GSContentIndex]:
 ## listed as Name [Pack] and playable, none online, an unaccepted map kind left out, the game's
 ## own ids win, a bad document refused with a reason.
 
@@ -14,7 +14,7 @@ const DIR := "user://ws_fixture/"
 func _ready() -> void:
 	checks = 19
 	print("dot-game-template: Workshop maps")
-	DotLog.set_level(DotLog.Level.ERROR)
+	GSLog.set_level(GSLog.Level.ERROR)
 	_write("bunker.json", '{"id": "bunker", "name": "Bunker", "size": [900, 500], "coins": 12, "floor": [0.2, 0.1, 0.1]}')
 	_write("bad.json", '{"id": "bad", "name": "Bad", "size": [9000, 500], "coins": 12}')
 	_write("run.json", '{"id": "run", "name": "Run", "size": [900, 500], "coins": 3}')
@@ -28,7 +28,7 @@ func _ready() -> void:
 
 	section("solo")
 	var shop := TplWorkshop.new()
-	shop.follow(_index(DotContentIndex.SESSION_SOLO))
+	shop.follow(_index(GSContentIndex.SESSION_SOLO))
 	var names := _names()
 	check(names.has("Bunker [Fixture Pack]"), "the accepted map is listed as Name [Pack] " + str(names))
 	check(not names.has("Run [Fixture Pack]"), "a map kind the game does not accept is filtered out")
@@ -37,11 +37,11 @@ func _ready() -> void:
 	done()
 
 	section("online")
-	var index := _index(DotContentIndex.SESSION_SOLO)
+	var index := _index(GSContentIndex.SESSION_SOLO)
 	var follower := TplWorkshop.new()
 	follower.follow(index)
 	check(TplArenas.workshop.size() == 1, "listed while the index is solo")
-	index.set_session(DotContentIndex.SESSION_ONLINE)
+	index.set_session(GSContentIndex.SESSION_ONLINE)
 	follower.refresh()
 	check(TplArenas.workshop.is_empty(), "gone when the session turns online")
 	check(TplArenas.find(&"bunker").is_empty(), "and not playable")
@@ -49,7 +49,7 @@ func _ready() -> void:
 
 	section("ids and refusals")
 	shop = TplWorkshop.new()
-	shop.follow(_index(DotContentIndex.SESSION_SOLO))
+	shop.follow(_index(GSContentIndex.SESSION_SOLO))
 	check(not _names().has("Imposter [Fixture Pack]"), "the game's own id wins")
 	check(TplArenas.find(&"classic")["name"] == "Classic", "and keeps its own row")
 	check(shop.refused.has("bad"), "the bad document is refused with a reason: " + str(shop.refused.get("bad", "")))
@@ -82,8 +82,8 @@ func _write(file: String, text: String) -> void:
 	f.close()
 
 
-func _index(session: StringName) -> DotContentIndex:
-	var index := DotContentIndex.new()
+func _index(session: StringName) -> GSContentIndex:
+	var index := GSContentIndex.new()
 	index.set_session(session)
 	var _added := index.add_pack({
 		"content_id": "fixture/arenas", "version": "1.0.0", "prefix": DIR,

@@ -1,4 +1,4 @@
-extends DotGameModule
+extends GSGameModule
 
 const TplArenas := preload("tpl_arenas.gd")
 const TplBridge := preload("net/tpl_bridge.gd")
@@ -6,16 +6,16 @@ const TplGame := preload("tpl_game.gd")
 const TplPaths := preload("tpl_paths.gd")
 
 ## This game, as a module a dedicated server loads (`module:` in game.yml).
-## What every server game repeats is [DotGameModule]'s; what is left is this game's.
+## What every server game repeats is [GSGameModule]'s; what is left is this game's.
 ## No `class_name`: a delivered pack's class names are never registered in the host.
 
 ## The players' say over the arena: dot-vote's director, whose commands include the map
 ## menu's server half. See [method _build_map_menu].
-var director: DotVoteDirector = null
-var vote_commands: DotVoteCommands = null
+var director: GSVoteDirector = null
+var vote_commands: GSVoteCommands = null
 
 ## GameSpice Workbench over the config; the players never see it.
-var workbench: DotGameWorkbench = null
+var workbench: GSGameWorkbench = null
 
 ## Connected to the server, which outlives this module, so it is let go in [method _game_unload].
 var _on_left: Callable = Callable()
@@ -23,8 +23,8 @@ var _on_left: Callable = Callable()
 
 ## For a server that has this game in its own project rather than in a pack: the suites, and a
 ## server run straight from this repository. A deployed server reads game.yml instead.
-static func game_descriptor() -> DotGameDescriptor:
-	var descriptor := DotGameDescriptor.new()
+static func game_descriptor() -> GSGameDescriptor:
+	var descriptor := GSGameDescriptor.new()
 	descriptor.game_id = "tpl"
 	descriptor.display_name = "Coin Grab"
 	descriptor.scene = TplPaths.rebase("res://scenes/tpl_server.tscn")
@@ -42,7 +42,7 @@ func _game_service() -> StringName:
 ## The engine's physics rate, which the server has already set from `sv_tickrate`: the
 ## module's tick is driven by the physics frame, so any other number would be a netcode
 ## counting time at one rate inside a process ticking at another.
-func _net_config() -> DotNetConfig:
+func _net_config() -> GSNetConfig:
 	return TplBridge.net_config(Engine.physics_ticks_per_second)
 
 
@@ -50,29 +50,29 @@ func _make_bridge() -> Node:
 	return TplBridge.new()
 
 
-func _game_load() -> DotResult:
+func _game_load() -> GSResult:
 	_bind_config((game as TplGame).config_binder)
 	add_command("tpl_status", _cmd_status, "Show the players, their scores and the coins")
 	_build_map_menu()
 	# "Still loading": a player behind their client's cover collects nothing (TplGame.collect).
 	# The player id is the session's userid, which is the roster's seat.
 	(game as TplGame).harm_gate = can_be_harmed
-	return DotResult.success(null)
+	return GSResult.success(null)
 
 
 ## Every config field as a `tpl_<field>` cvar, the cfg/ diff commands, and GameSpice Workbench over the same fields:
 ## the F9 panel off a dedicated server, the HTTP page only with `workbench.enabled`.
-func _bind_config(binder: DotGameConfigBinder) -> void:
+func _bind_config(binder: GSGameConfigBinder) -> void:
 	if binder == null:
 		return
-	workbench = DotGameWorkbench.new()
+	workbench = GSGameWorkbench.new()
 	workbench.name = "Workbench"
 	workbench.dedicated = DisplayServer.get_name() == "headless"
 	workbench.listen_host_fn = func() -> bool: return DisplayServer.get_name() != "headless"
 	workbench.permit_fn = func(actor: Variant, flag: String) -> bool:
 		return server != null and server.admins != null and actor is String \
 			and bool(server.admins.uid_has_permission(actor, flag))
-	for set: DotProfileSet in binder.profile_sets():
+	for set: GSProfileSet in binder.profile_sets():
 		workbench.add_set(set, "Game settings: %s" % set.rel_path.trim_prefix("config_"))
 	add_child(workbench)
 	var started := workbench.start()
@@ -84,38 +84,38 @@ func _bind_config(binder: DotGameConfigBinder) -> void:
 			var _served := workbench.serve_remote(net)
 		if workbench.api != null:
 			binder.attach(workbench.api.runtime)
-	binder.bind_cvars(add_cvar, DotConVar.FLAG_ARCHIVE, console.has_name)
+	binder.bind_cvars(add_cvar, GSConVar.FLAG_ARCHIVE, console.has_name)
 	binder.bind_commands(add_command)
 
 
 ## M on a server: GameSpice Vote's map menu, over a vote of the arenas.
 ## [b]Who may change the arena is `sv_map_menu_flag`[/b] (`generic` staff by default, `changemap`, `anyone`; `sv_map_menu_alone`
-## for a lone player); anybody else nominates and rocks the vote (`!rtv`, `!vote 2`). The client half is [method DotMenu.use_maps].
+## for a lone player); anybody else nominates and rocks the vote (`!rtv`, `!vote 2`). The client half is [method GSMenu.use_maps].
 func _build_map_menu() -> void:
 	var world := game as TplGame
-	var source := DotVoteListSource.new()
+	var source := GSVoteListSource.new()
 	source.label = "arenas"
 	# LIST and not TplArenas.rows(): a server never follows the Workshop (tpl_workshop.gd), and
 	# an arena id is the wire, so a ballot may only name arenas every client has.
 	for arena: Dictionary in TplArenas.LIST:
-		var choice := DotVoteChoice.of(arena["id"], arena["name"])
+		var choice := GSVoteChoice.of(arena["id"], arena["name"])
 		choice.description = arena["about"]
 		var _added := source.add(choice)
 	source.current = world.arena["id"]
 	source.apply_fn = world.change_arena
 
-	var rules := DotVoteRules.new()
-	rules.trigger = DotVoteRules.Trigger.RTV_ONLY
+	var rules := GSVoteRules.new()
+	rules.trigger = GSVoteRules.Trigger.RTV_ONLY
 	rules.duration_sec = 0.0
-	rules.apply = DotVoteRules.Apply.IMMEDIATE
-	rules.rtv_apply = DotVoteRules.Apply.IMMEDIATE
+	rules.apply = GSVoteRules.Apply.IMMEDIATE
+	rules.rtv_apply = GSVoteRules.Apply.IMMEDIATE
 	# The ballot's "Don't change" already stands for the arena being played.
 	rules.include_current = false
 	rules.include_extend = false
 	rules.cooldown = 0
 	rules.vote_duration_sec = 20.0
 
-	director = DotVoteDirector.new()
+	director = GSVoteDirector.new()
 	director.name = "ArenaVote"
 	director.rules = rules
 	director.source = source
@@ -137,7 +137,7 @@ func _build_map_menu() -> void:
 			numbered.append("%d. %s" % [i + 1, director.option_label(StringName(str(options[i])))])
 		server.broadcast_message("Type !vote and a number: %s" % "   ".join(numbered)))
 
-	vote_commands = DotVoteCommands.new()
+	vote_commands = GSVoteCommands.new()
 	vote_commands.director = director
 	# `!vote 2` rather than GameSpice Vote's default `!votefor 2`: nothing else here is called vote.
 	vote_commands.names = {"vote": "vote"}
@@ -154,7 +154,7 @@ func _build_map_menu() -> void:
 		var _told := report_map(String(id)))
 	# A player who leaves takes their rock-the-vote with them. GameSpice Vote's commands name a voter
 	# `u<userid>`.
-	_on_left = func(session: DotClientSession, _reason: String) -> void:
+	_on_left = func(session: GSClientSession, _reason: String) -> void:
 		director.forget_voter(StringName("u%d" % session.userid))
 	server.client_disconnected.connect(_on_left)
 
@@ -182,6 +182,6 @@ func _game_board_fields(session: Object) -> Dictionary:
 	return {"coins": who.score} if who != null else {}
 
 
-func _cmd_status(ctx: DotCmdContext) -> void:
+func _cmd_status(ctx: GSCmdContext) -> void:
 	ctx.reply_lines((game as TplGame).describe_lines())
 	ctx.reply_lines((bridge as TplBridge).describe_lines())

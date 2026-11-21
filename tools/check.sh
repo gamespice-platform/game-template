@@ -5,7 +5,7 @@
 #   tools/check.sh            import, parse every script, run every suite, test the rename
 #   tools/check.sh --quick    the same without the rename test
 #
-# 1. IMPORT. Registers the addons' class names; without it every Dot* type in every script
+# 1. IMPORT. Registers the addons' class names; without it every GS* type in every script
 #    fails to resolve and it reads like a hundred unrelated errors.
 # 2. PARSE every script on its own. A scene whose script does not parse does not fail, it
 #    HANGS, silently -- so this runs before anything is run.

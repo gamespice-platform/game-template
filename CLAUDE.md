@@ -20,8 +20,8 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first, then dot-game's, dot-net's a
 | `game/tpl_game.gd` | the whole game; `step` is static and pure (what prediction runs) |
 | `game/tpl_arenas.gd` | the maps, as data: id, name, size, coin count, floor; what M lists |
 | `game/tpl_workshop.gd`, `provides.json` | Workshop maps, solo only: `accepts` map kind `coin_arena`; a pack map's `scene` is a JSON arena document read into `TplArenas.workshop`, played through `change_arena` |
-| `game/tpl_module.gd`, `tpl_server.gd` | the thin `DotGameModule` (plus the arena vote and the M menu's server half) and the server scene |
-| `game/tpl_client.gd`, `tpl_view.gd` | the client (settings through `DotMenuSettings`, console through `DotConsoleKit`, chat through GameSpice UI's `DotChatWindow`) and drawing |
+| `game/tpl_module.gd`, `tpl_server.gd` | the thin `GSGameModule` (plus the arena vote and the M menu's server half) and the server scene |
+| `game/tpl_client.gd`, `tpl_view.gd` | the client (settings through `GSMenuSettings`, console through `GSConsoleKit`, chat through GameSpice UI's `GSChatWindow`) and drawing |
 | `game/tpl_paths.gd` | `rebase()` / `rebase_onto()` for delivery |
 | `game/net/` | `tpl_bridge.gd` (the only file naming the game and GameSpice Net), `tpl_link.gd` (the one `@rpc` node), `tpl_command.gd`, `tpl_event.gd`, `tpl_request.gd`, `tpl_player_net.gd` |
 | `examples/` | `headless_config`, `headless_workbench`, `headless_rules`, `headless_net`, `headless_pack`, `headless_workshop`, and `suite.gd` (sections and a CHECKS total) |
@@ -59,31 +59,31 @@ Every suite shares `examples/suite.gd`: sections entered against sections comple
 - Nothing is sent to a client before its READY. [design](docs/design.md#the-shape-and-why-each-piece-is-the-one-it-is)
 - Read keys with `Input.is_physical_key_pressed`: `project.godot`'s input map does not travel in a pack. [design](docs/design.md#the-shape-and-why-each-piece-is-the-one-it-is)
 - `_intent` returns zero while the chat box is open, before the steer hook: keys are polled, and a focused line does not stop that. [design](docs/design.md#chat-and-why-it-is-in)
-- Chat goes through `DotClientLink.send_chat` and comes back on `chat_received`; never draw a line on send, and never send `!sm`/`/sm` (the box runs them). [design](docs/design.md#chat-and-why-it-is-in)
+- Chat goes through `GSClientLink.send_chat` and comes back on `chat_received`; never draw a line on send, and never send `!sm`/`/sm` (the box runs them). [design](docs/design.md#chat-and-why-it-is-in)
 - Every arena fits inside `TplGame.ARENA`, the range positions are sent in; arena ids are the wire (the ARENA event names one). The server sends ARENA before COINS, on admit and on every change. [design](docs/design.md#arenas-and-the-m-menu)
 - M is GameSpice Menu's `use_maps` on the client and GameSpice Vote's map menu on the server; who may change directly is `sv_map_menu_flag` (`generic`, staff, by default), everybody else gets a vote. Change the arena only through `TplGame.change_arena`, which the menu, the vote and solo all call. [design](docs/design.md#arenas-and-the-m-menu)
 - **Workshop maps are solo only.** The client calls `TplWorkshop.follow()` offline; a server never does, so the vote and the online M list stay `TplArenas.LIST` (ids are the wire). `TplWorkshop.accepted()` equals `provides.json`'s `map_kinds`; `headless_workshop` compares them.
 - **Still loading.** `TplGame.collect` asks `can_be_harmed(player_id)` first, the one choke point; the module assigns `harm_gate = can_be_harmed` on a server only (offline nobody loads). Anything new that hurts or takes from a player asks the same, and `headless_net` fails if `collect` stops asking. The client must not replace `platform.gate.cover` without freeing the stock one (it does not).
-- **A game with maps takes dropped maps through `DotMapDropIntake` and refuses unsupported drops out loud.** That covers a file or folder dropped on the window, dropped on the executable, or named with `--map-path=`; the intake comes from dot-map API 26 or later. Register one acceptor per kind the game can load. It returns `{}` for "not mine", and the intake then says what the game takes. Otherwise it returns `{added, errors}`. Gate the hookup at runtime so that older dot-map builds still run. Take the game's own config flags out of the arguments before looking for paths, so that a folder passed as a flag's value is not read as a drop. Models: PLAYLOT `game/client/playlot_map_drop.gd`, hide-n-seek `game/hs_map_drop.gd`, and each game's `headless_mapdrop`.
+- **A game with maps takes dropped maps through `GSMapDropIntake` and refuses unsupported drops out loud.** That covers a file or folder dropped on the window, dropped on the executable, or named with `--map-path=`; the intake comes from dot-map API 26 or later. Register one acceptor per kind the game can load. It returns `{}` for "not mine", and the intake then says what the game takes. Otherwise it returns `{added, errors}`. Gate the hookup at runtime so that older dot-map builds still run. Take the game's own config flags out of the arguments before looking for paths, so that a folder passed as a flag's value is not read as a drop. Models: PLAYLOT `game/client/playlot_map_drop.gd`, hide-n-seek `game/hs_map_drop.gd`, and each game's `headless_mapdrop`.
   ```gdscript
-  if DotAddonApi.build_level("dot_map") >= 26 and ResourceLoader.exists(INTAKE):
+  if GSAddonApi.build_level("dot_map") >= 26 and ResourceLoader.exists(INTAKE):
       var intake: Node = load(INTAKE).new()  # INTAKE = "res://addons/dot_map/core/dot_map_drop_intake.gd"
       intake.call(&"add_acceptor", "a <game> map (.json) or a folder of them", func(path: String, into: String) -> Dictionary:
           return {} if not _is_mine(path) else _add(path, into))  # {} = refused out loud
       intake.connect(&"handled", func(r: Dictionary) -> void: _say(r))  # added names and errors
       add_child(intake)  # watches the window itself
-      (func() -> void: intake.call(&"handle", <paths from DotMapDropIntake.paths_in_args>, "command line")).call_deferred()
+      (func() -> void: intake.call(&"handle", <paths from GSMapDropIntake.paths_in_args>, "command line")).call_deferred()
   ```
 - RPC methods are named `_rpc_*`, never a Node virtual. [design](docs/design.md#the-shape-and-why-each-piece-is-the-one-it-is)
 - The HUD is a full-rect root Control the menu themes and scales (`settings.menu.follow_hud(root, accent)`, by name); put everything the HUD draws under it, and give your accent as a Theme rather than colouring Labels by hand.
 - Commit before trusting GameSpice Server Deploy's `template_client`: it packages HEAD. [design](docs/design.md#the-pack-rules-enforced-in-three-places)
 - `tools/rename.sh` leaves Markdown alone and refuses a repository name the site cannot use as a pack id; `tools/check.sh` must keep the survivor check. [design](docs/design.md#the-rename)
-- Every export preset keeps `cfg/*` in `include_filter` (`export_presets.example.cfg` has it; copy it to `export_presets.cfg`). Exports drop `.yml`, so without it the addons' `cfg/addon/*/*.yml` defaults vanish from a build and nothing errors. dot-ci's `check-export-filter.sh` fails a repository without it. Web presets also need `*.html`; add `sounds/ambience/*.json` when the game ships a DotAmbience set (moods.json is not a resource).
+- Every export preset keeps `cfg/*` in `include_filter` (`export_presets.example.cfg` has it; copy it to `export_presets.cfg`). Exports drop `.yml`, so without it the addons' `cfg/addon/*/*.yml` defaults vanish from a build and nothing errors. dot-ci's `check-export-filter.sh` fails a repository without it. Web presets also need `*.html`; add `sounds/ambience/*.json` when the game ships a GSAmbience set (moods.json is not a resource).
 - Add an addon only by adding its `/addons/<name>` line to `.gitignore` and using it; a pack is checked against the addons it names.
 - `project.godot` carries no comments: the editor drops them, and any key left at its default, the first time it saves the file, so the reasons live here. The renderer is `gl_compatibility` because the client shell a published game is mounted into is, a browser being one of its targets. Nothing in that file travels in a pack (not the renderer, the input map or the gravity), so anything the game depends on at runtime is set from code. `[importer_defaults]` keeps new textures at `detect_3d/compress_to=0`, so the editor never re-imports one VRAM-compressed on a first open and leaves the checkout dirty.
 
 ## Not here yet
 
-- **Voice, moderation and chat channels of the game's own.** `DotGameServices` is the way (mg-buses-from-hell's `bfh_services.gd` is the short example), with `send_chat`/`send_voice` on the bridge. Chat itself is in, through GameSpice Server's own chat manager; routing it through the game is the step for team or proximity channels.
+- **Voice, moderation and chat channels of the game's own.** `GSGameServices` is the way (mg-buses-from-hell's `bfh_services.gd` is the short example), with `send_chat`/`send_voice` on the bridge. Chat itself is in, through GameSpice Server's own chat manager; routing it through the game is the step for team or proximity channels.
 - **An exit probe.** The family's `dedicated` suites re-run themselves in a second process to catch "leaked at exit"; add it when the game grows.
 - **The site half of the README is described, not run here.** Sections 8 and 9 follow website-city's `publish_release.ts` and `pack-id.ts`, and a server installing `someone/dot-game-template` from a site-shaped local origin was run end to end; a release published through the real site has not been verified from this repository.

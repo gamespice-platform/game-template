@@ -16,14 +16,14 @@ static func accepted() -> PackedStringArray:
 ## Entry id -> why it was refused.
 var refused: Dictionary = {}
 
-var catalogue: DotMapCatalogue = null
+var catalogue: GSMapCatalogue = null
 
 
 ## Follows [param index] (the process's shared one by default); the catalogue keeps itself
 ## current as packs mount and the session changes.
-func follow(index: DotContentIndex = null) -> void:
-	catalogue = DotMapCatalogue.new()
-	catalogue.follow_content(index if index != null else DotContentIndex.shared(), accepted())
+func follow(index: GSContentIndex = null) -> void:
+	catalogue = GSMapCatalogue.new()
+	catalogue.follow_content(index if index != null else GSContentIndex.shared(), accepted())
 	refresh()
 
 
@@ -42,7 +42,7 @@ func refresh() -> void:
 			TplArenas.workshop[map.id] = arena
 
 
-func _read(map: DotMapDef) -> Dictionary:
+func _read(map: GSMapDef) -> Dictionary:
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(map.scene_path)) if map.scene_path != "" else null
 	var why := ""
 	var arena := {}
@@ -69,5 +69,5 @@ func _read(map: DotMapDef) -> Dictionary:
 				"about": str(doc.get("about", "A subscribed map."))}
 	if why != "":
 		refused[String(map.id)] = why
-		DotLog.warn(CHANNEL, "a subscribed map was refused", {"id": String(map.id), "why": why})
+		GSLog.warn(CHANNEL, "a subscribed map was refused", {"id": String(map.id), "why": why})
 	return arena

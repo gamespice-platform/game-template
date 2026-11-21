@@ -71,7 +71,7 @@ class Player:
 var config := TplConfig.new()
 
 ## Binds [member config] to cvars; set by the server scene.
-var config_binder: DotGameConfigBinder = null
+var config_binder: GSGameConfigBinder = null
 
 var authoritative: bool = true
 
@@ -102,11 +102,11 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	if register_service:
-		DotRegistry.register(SERVICE, self)
+		GSRegistry.register(SERVICE, self)
 
 
 func _exit_tree() -> void:
-	DotRegistry.unregister_instance(SERVICE, self)
+	GSRegistry.unregister_instance(SERVICE, self)
 
 
 ## Lays the coins out. A non-zero [param rng_seed] makes it repeatable, which the suites use.
@@ -123,15 +123,15 @@ func start(rng_seed: int = 0) -> void:
 
 ## Changes the arena for everybody: a fresh round on it, every score back to 0. What M does,
 ## solo and on a server; the server's bridge tells every client. Only the authority calls it.
-func change_arena(id: StringName) -> DotResult:
+func change_arena(id: StringName) -> GSResult:
 	if TplArenas.find(id).is_empty():
-		return DotResult.fail(DotError.CODE_INVALID, "There is no arena called '%s'." % id)
+		return GSResult.fail(GSError.CODE_INVALID, "There is no arena called '%s'." % id)
 	use_arena(id)
 	for who: Player in players.values():
 		who.score = 0
 	start()
 	arena_changed.emit(id)
-	return DotResult.success(id)
+	return GSResult.success(id)
 
 
 ## Takes [param id]'s size and floor without laying any coins: a client hears where they are

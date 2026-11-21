@@ -1,4 +1,4 @@
-extends DotNetMessage
+extends GSNetMessage
 
 ## Everything the server tells a client that is not a snapshot: who you are, which arena it is,
 ## where the coins are, who arrived and who left. A kind and a body, so a new kind is one line here and one
@@ -19,7 +19,7 @@ var body: PackedByteArray = PackedByteArray()
 
 
 ## Both arguments default because the registry decodes with a bare `new()`. This file must not
-## preload itself: a DotNetMessage script that does leaks every script at exit on Godot 4.7.2.
+## preload itself: a GSNetMessage script that does leaks every script at exit on Godot 4.7.2.
 func _init(p_kind: int = 0, p_body: PackedByteArray = PackedByteArray()) -> void:
 	kind = p_kind
 	body = p_body
@@ -29,12 +29,12 @@ func _type_name() -> StringName:
 	return NAME
 
 
-func _write(writer: DotNetWriter) -> void:
+func _write(writer: GSNetWriter) -> void:
 	writer.write_uint(kind, KIND_BITS)
 	writer.write_bytes(body)
 
 
-func _read(reader: DotNetReader) -> void:
+func _read(reader: GSNetReader) -> void:
 	kind = reader.read_uint(KIND_BITS)
 	body = reader.read_bytes(MAX_BODY)
 
@@ -46,7 +46,7 @@ static func fits() -> bool:
 	return int(Kind.values().max()) < (1 << KIND_BITS)
 
 
-func _validate() -> DotResult:
+func _validate() -> GSResult:
 	if kind < 0 or kind >= Kind.size():
-		return DotResult.fail(DotError.CODE_INVALID, "Unknown event kind %d." % kind)
-	return DotResult.success(true)
+		return GSResult.fail(GSError.CODE_INVALID, "Unknown event kind %d." % kind)
+	return GSResult.success(true)
