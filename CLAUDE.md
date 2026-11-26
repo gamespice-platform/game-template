@@ -2,7 +2,7 @@
 
 The repository a third-party developer copies to start a game on the platform: a small, complete, playable networked game (Coin Grab), and its README is the guide. It is the organisation's (`gamespice-platform/game-template`), not a game author's, because it is part of the platform's front door.
 
-Read the family [CLAUDE.md](../../CLAUDE.md) first, then gs-game's, gs-net's and gs-server-deploy's own. The reasoning is in [docs/design.md](docs/design.md).
+Read the family [CLAUDE.md](../../CLAUDE.md) first (and the addon index `~/godot/ADDONS.md`: shared code lives in an addon, this template extends it and copies no other game), then gs-game's, gs-net's and gs-server-deploy's own. The reasoning is in [docs/design.md](docs/design.md).
 
 **Every line here is a line a stranger reads before they write their first one.** The other games show what the platform can do; this shows what a game has to do, and nothing else. The budget is small on purpose: anything a newcomer does not need on day one (voice, moderation, identity, stats, bots, art, sound) is left out and named in the README as the next thing to add, rather than shipped half-explained. Chat is in, because a player must be able to read the server's own lines and run `sm` (self-mute) in every game, this one included ([design](docs/design.md#chat-and-why-it-is-in)).
 

@@ -16,7 +16,7 @@ Settings layer the same way in every addon, weakest first: the addon's schema de
 
 This template ships `tools/check.sh`. A finished game also has a `game.sh` wrapping the same steps:
 
-`./game.sh` is the one entry point every game repository has (copy it from the reference game, `game-fatal-contact`):
+`./game.sh` is the one entry point every game repository has. It is generated, never copied from another game: write a `game.conf` (GAME_NAME, PACK, SUITES, FEATURES; the keys are listed at the top of `tools/gen-game-sh.py`) and run `tools/gen-game-sh.py`, which fills `tools/game.sh.in`. `tools/gen-game-sh.py --check` fails when `game.sh` was edited by hand:
 
 | Command | Does |
 | --- | --- |
