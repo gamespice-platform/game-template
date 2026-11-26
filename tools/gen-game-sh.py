@@ -21,7 +21,9 @@ game.conf is KEY=VALUE lines, shell quoting, '#' comments:
   UI_CHECKS="name ..."                      with ui_checks: tools/verify_ui.sh checks run under xvfb
   SUITE_SHARDS="suite=a,b ..."             with suite_shards: `test suite` plays suite.a, suite.b (`-- --shard a`) up to
                                             $SHARD_JOBS at once, then the suite once over their logs (`-- --merge LOG...`)
-Further FEATURES: mobile_pack (GS_PACK_ETC2_ASTC=1 imports mobile texture variants when packing), gitignore_noglob (a
+  PERF_GAME="id"                            with perf_gate: the game id the Nightly performance gate reads (fc, zz, playlot)
+Further FEATURES: perf_gate (the Nightly performance gate step and `game.sh perf-gate`), pack_paths (tools/check_pack_paths.sh
+runs before the parse pass), mobile_pack (GS_PACK_ETC2_ASTC=1 imports mobile texture variants when packing), gitignore_noglob (a
 "/addons/*" glob line in .gitignore is not an addon), fixed_fps, suite_args (`test NAME -- ARGS`), content_links (the .gitignore
 "# bootstrap-link:" paths must exist), gitignore_optional (addons under "# bootstrap-optional"
 are not required), coldstart (tools/cold_start.tscn), visual, defs (`game.sh defs`), perf (commands that run tools/visual_check.sh, tools/perf_budget.sh).
@@ -30,9 +32,9 @@ Template syntax: '#@if NAME' / '#@else' / '#@end' lines (no nesting) and @{VAR}.
 import os, re, shlex, stat, sys
 
 FEATURES = {"soak", "weapon_art", "suite_timeouts", "netchaos", "tool_checks", "min_timeouts", "ui_checks",
-            "suite_args", "suite_shards", "content_links", "gitignore_optional", "visual", "perf", "coldstart", "defs", "fixed_fps", "mobile_pack", "gitignore_noglob"}
+            "suite_args", "suite_shards", "content_links", "gitignore_optional", "visual", "perf", "coldstart", "defs", "fixed_fps", "mobile_pack", "gitignore_noglob", "perf_gate", "pack_paths"}
 DEFAULTS = {"EXTRA_PACKS": "", "SOAK_ARG": "MAP", "SOAK_FLAGS": "", "TIMEOUT_DEFAULT": "900",
-            "TIMEOUT_NOTE": "", "SUITE_TIMEOUTS": "", "SUITE_SHARDS": "", "BASE": "", "SHARD_EXTRA": "", "SCENE_DECL": "", "MIN_TIMEOUTS": "", "UI_CHECKS": "", "FIXED_FPS": "", "MIN_TIMEOUTS_COMMENT": "", "SUITES_COMMENT": "", "DEFS_ACH": "", "DEFS_LB": "", "FEATURES": ""}
+            "TIMEOUT_NOTE": "", "SUITE_TIMEOUTS": "", "SUITE_SHARDS": "", "BASE": "", "SHARD_EXTRA": "", "SCENE_DECL": "", "MIN_TIMEOUTS": "", "UI_CHECKS": "", "FIXED_FPS": "", "MIN_TIMEOUTS_COMMENT": "", "SUITES_COMMENT": "", "DEFS_ACH": "", "DEFS_LB": "", "FEATURES": "", "PERF_GAME": ""}
 MIN_TIMEOUTS_DEFAULT_COMMENT = "# A suite that legitimately needs at least this long, as name=seconds; a larger\n# --timeout still wins."
 REQUIRED = ("GAME_NAME", "PACK", "SUITES")
 
@@ -70,6 +72,8 @@ def render(template, conf):
             die("FEATURES has %s but %s is empty" % (need, key))
     if "defs" in feats and not (conf["DEFS_ACH"] or conf["DEFS_LB"]):
         die("FEATURES has defs but DEFS_ACH and DEFS_LB are empty")
+    if "perf_gate" in feats and not conf["PERF_GAME"]:
+        die("FEATURES has perf_gate but PERF_GAME is empty")
     shards = "suite_shards" in feats
     conf = dict(conf, BASE="base" if shards else "scene", SCENE_DECL="" if shards else 'scene="$1" ')
     conf = dict(conf, SHARD_ARGS_SH=' ${extra[@]+-- "${extra[@]}"}' if "suite_shards" in feats else "")

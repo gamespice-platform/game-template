@@ -369,6 +369,14 @@ run_sharded() {
 }
 
 #@end
+#@if perf_gate
+# The Nightly Performance gate (addons/gs_game/tools/gs_game_perf_gate.sh): the latest recorded run against the budgets. Advisory
+# unless PERF_GATE=strict; PERF_GATE=off skips it. Skipped quietly where there is no `nightly`.
+perf_gate_step() {
+    PERF_GAME=@{PERF_GAME} bash addons/gs_game/tools/gs_game_perf_gate.sh
+}
+
+#@end
 do_test() {
 #@if suite_args
     # Everything after a literal `--` goes to each suite as user args (e.g. `test headless_maps -- --map=ID`).
@@ -385,10 +393,25 @@ do_test() {
     echo "importing"
     timeout 600 "$GODOT" --headless --path . --import >/dev/null 2>&1
 
+#@if pack_paths
+    if [ $# -eq 0 ]; then
+        # A delivered pack mounts under res://gs_cloud/: an un-rebased path to the game's own files works
+        # here and nowhere else (0.1.69 on the panel servers). Source-only, so it costs nothing.
+        if "$ROOT/tools/check_pack_paths.sh" >/dev/null; then
+            printf '  %sok%s   every shipped res:// path is rebased\n' "$GRN" "$OFF"
+        else
+            "$ROOT/tools/check_pack_paths.sh"; fails=$((fails + 1))
+        fi
+    fi
+#@end
     if [ "$PARSE" = 1 ] && [ $# -eq 0 ]; then
         echo "parsing every script"
         parse_all
+#@if pack_paths
+        fails=$((fails + $?))
+#@else
         fails=$?
+#@end
         [ "$fails" -eq 0 ] && printf '  %sok%s   every script parses\n' "$GRN" "$OFF"
     fi
 
@@ -431,6 +454,10 @@ do_test() {
     fi
 #@end
 
+#@if perf_gate
+    [ $# -eq 0 ] && { perf_gate_step || fails=$((fails + 1)); }
+
+#@end
     echo
     [ "$fails" -eq 0 ] && { printf '%sall passed%s\n' "$GRN" "$OFF"; return 0; }
     printf '%s%d failed%s\n' "$RED" "$fails" "$OFF"
@@ -503,6 +530,11 @@ case "$cmd" in
     netchaos)
         [ -x tools/netchaos.sh ] || die "$GAME_NAME has no netchaos rig." 2
         exec tools/netchaos.sh "$@"
+        ;;
+#@end
+#@if perf_gate
+    perf-gate)
+        perf_gate_step
         ;;
 #@end
     suites)
