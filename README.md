@@ -1,4 +1,6 @@
-Start a multiplayer game for the [**GameSpice**](https://gamespice.net) platform from here. This repository is a small, complete, networked game — **Coin Grab** — written the way the platform wants a game written, so that the day you push a tag, anybody running a server can install it and anybody with the client can play it without downloading anything but your game.
+Start a multiplayer game for the [**GameSpice**](https://gamespice.net) platform from here. This repository is a small, complete, networked game, **Coin Grab**, written the way the platform wants a game written, so that the day you push a tag, anybody running a server can install it and anybody with the client can play it without downloading anything but your game.
+
+The template is MIT licensed and was built with Claude Code. `tools/check.sh` runs its parse check and headless suites. It follows the same layout as the games in [Zee's Games](https://zeesgames.com), which are built on the GameSpice addons and run on live servers.
 
 It needs Godot 4.7 and a Linux or macOS shell for the tools (the game itself runs anywhere Godot does).
 
@@ -248,6 +250,12 @@ Your pack contains your game and none of the addons: those are in the client and
 Before mounting, a client or server compares that against its own addons. If yours needs more than it has, it refuses with "This game needs GameSpice Net API level 2 or newer; this server has level 1" — the server's operator or the player updates, and nothing half-loads. An addon raises `LEVEL` when it adds something a game could use, and raises `OLDEST` when it removes or changes something; a pack built before that is refused by the newer host rather than breaking in it. So: build against the addons your players have (running `resolve-deps.sh` gets the newest), and when a newer addon breaks your game, release again.
 
 To pin it yourself, commit your own `requires.json` at the root; the release then checks that it covers everything the game uses instead of writing one.
+
+## Used by
+
+No shipped game vendors the template. It is the starting point for a new one, and Coin Grab is its only game.
+
+The whole collection is at [zeesgames.com](https://zeesgames.com).
 
 ## Credits
 
