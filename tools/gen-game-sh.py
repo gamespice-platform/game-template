@@ -26,13 +26,20 @@ Further FEATURES: perf_gate (the Nightly performance gate step and `game.sh perf
 runs before the parse pass), mobile_pack (GS_PACK_ETC2_ASTC=1 imports mobile texture variants when packing), gitignore_noglob (a
 "/addons/*" glob line in .gitignore is not an addon), fixed_fps, suite_args (`test NAME -- ARGS`), content_links (the .gitignore
 "# bootstrap-link:" paths must exist), gitignore_optional (addons under "# bootstrap-optional"
-are not required), coldstart (tools/cold_start.tscn), visual, defs (`game.sh defs`), perf (commands that run tools/visual_check.sh, tools/perf_budget.sh).
+are not required), coldstart (tools/cold_start.tscn), visual, defs (`game.sh defs`), perf (commands that run tools/visual_check.sh, tools/perf_budget.sh),
+gd_perf_lint (on by itself when the game has tools/gd_perf_lint.py and its ci/efficiency/gd-perf.tsv baseline: `test` runs the
+gs-ci GDScript perf ratchet before the parse pass and fails on a new or worse site).
 Template syntax: '#@if NAME' / '#@else' / '#@end' lines (no nesting) and @{VAR}.
 """
 import os, re, shlex, stat, sys
 
 FEATURES = {"soak", "weapon_art", "suite_timeouts", "netchaos", "tool_checks", "min_timeouts", "ui_checks",
-            "suite_args", "suite_shards", "content_links", "gitignore_optional", "visual", "perf", "coldstart", "defs", "fixed_fps", "mobile_pack", "gitignore_noglob", "perf_gate", "pack_paths"}
+            "suite_args", "suite_shards", "content_links", "gitignore_optional", "visual", "perf", "coldstart", "defs", "fixed_fps", "mobile_pack", "gitignore_noglob", "perf_gate", "pack_paths", "gd_perf_lint"}
+# Derived from other features, never set in game.conf: src_checks = the source-only checks block
+# (pack_paths or gd_perf_lint) that opens `test` with no suite names.
+DERIVED = {"src_checks"}
+# Feature on automatically when the game has all of these files; listing it in FEATURES without them fails.
+AUTO_FEATURES = {"gd_perf_lint": ("tools/gd_perf_lint.py", "ci/efficiency/gd-perf.tsv")}
 DEFAULTS = {"EXTRA_PACKS": "", "SOAK_ARG": "MAP", "SOAK_FLAGS": "", "TIMEOUT_DEFAULT": "900",
             "TIMEOUT_NOTE": "", "SUITE_TIMEOUTS": "", "SUITE_SHARDS": "", "BASE": "", "SHARD_EXTRA": "", "SCENE_DECL": "", "MIN_TIMEOUTS": "", "UI_CHECKS": "", "FIXED_FPS": "", "MIN_TIMEOUTS_COMMENT": "", "SUITES_COMMENT": "", "DEFS_ACH": "", "DEFS_LB": "", "FEATURES": "", "PERF_GAME": ""}
 MIN_TIMEOUTS_DEFAULT_COMMENT = "# A suite that legitimately needs at least this long, as name=seconds; a larger\n# --timeout still wins."
@@ -63,6 +70,8 @@ def render(template, conf):
     feats = set(conf["FEATURES"].split())
     if feats - FEATURES:
         die("unknown FEATURES: %s" % " ".join(sorted(feats - FEATURES)))
+    if feats & {"pack_paths", "gd_perf_lint"}:
+        feats.add("src_checks")
     conf = dict(conf, LIMIT='"$limit"' if "min_timeouts" in feats else '"$TIMEOUT"',
                 LIMIT_MSG="${limit}" if "min_timeouts" in feats else "${TIMEOUT}",
                 SUITE_ARGS_SH=' ${SUITE_ARGS[@]+-- "${SUITE_ARGS[@]}"}' if "suite_args" in feats and "suite_shards" not in feats else "",
@@ -94,7 +103,7 @@ def render(template, conf):
         if m:
             kind, name = m.groups()
             if kind == "if":
-                if name not in FEATURES:
+                if name not in FEATURES | DERIVED:
                     die("template uses unknown feature " + name)
                 keep, state = name in feats, True
             elif kind == "else":
@@ -106,12 +115,24 @@ def render(template, conf):
             out.append(re.sub(r"@\{([A-Z_]+)\}", lambda mm: conf[mm.group(1)], line))
     return "\n".join(out)
 
+def auto_features(conf, game):
+    """Adds each AUTO_FEATURES feature whose files the game has; dies when FEATURES lists one without them."""
+    feats = conf["FEATURES"].split()
+    for name, files in sorted(AUTO_FEATURES.items()):
+        missing = [f for f in files if not os.path.isfile(os.path.join(game, f))]
+        if name in feats and missing:
+            die("FEATURES has %s but the game has no %s" % (name, ", ".join(missing)))
+        if not missing and name not in feats:
+            feats.append(name)
+    return dict(conf, FEATURES=" ".join(feats))
+
 def main():
     args = [a for a in sys.argv[1:] if a != "--check"]
     check = "--check" in sys.argv[1:]
     game = os.path.abspath(args[0] if args else ".")
     here = os.path.dirname(os.path.abspath(__file__))
-    text = render(open(os.path.join(here, "game.sh.in")).read(), load_conf(os.path.join(game, "game.conf")))
+    conf = auto_features(load_conf(os.path.join(game, "game.conf")), game)
+    text = render(open(os.path.join(here, "game.sh.in")).read(), conf)
     target = os.path.join(game, "game.sh")
     if check:
         if not os.path.exists(target) or open(target).read() != text:

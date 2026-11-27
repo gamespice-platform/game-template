@@ -393,8 +393,10 @@ do_test() {
     echo "importing"
     timeout 600 "$GODOT" --headless --path . --import >/dev/null 2>&1
 
-#@if pack_paths
+#@if src_checks
     if [ $# -eq 0 ]; then
+#@end
+#@if pack_paths
         # A delivered pack mounts under res://gs_cloud/: an un-rebased path to the game's own files works
         # here and nowhere else (0.1.69 on the panel servers). Source-only, so it costs nothing.
         if "$ROOT/tools/check_pack_paths.sh" >/dev/null; then
@@ -402,12 +404,23 @@ do_test() {
         else
             "$ROOT/tools/check_pack_paths.sh"; fails=$((fails + 1))
         fi
+#@end
+#@if gd_perf_lint
+        # The server hot path keeps to the GDScript practices (ci/efficiency/gd-perf-hot.txt); the
+        # ratchet only shrinks. Source-only.
+        if out=$(python3 "$ROOT/tools/gd_perf_lint.py" 2>&1); then
+            printf '  %sok%s   hot scripts: no new GDScript perf violations\n' "$GRN" "$OFF"
+        else
+            printf '%s\n' "$out" | tail -40; fails=$((fails + 1))
+        fi
+#@end
+#@if src_checks
     fi
 #@end
     if [ "$PARSE" = 1 ] && [ $# -eq 0 ]; then
         echo "parsing every script"
         parse_all
-#@if pack_paths
+#@if src_checks
         fails=$((fails + $?))
 #@else
         fails=$?
