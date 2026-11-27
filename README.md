@@ -253,6 +253,10 @@ To pin it yourself, commit your own `requires.json` at the root; the release the
 
 ## Used by
 
+### Zee's Games
+
+Zee's Games is a collection of games I made on GameSpice, for demonstration and for fun. They show what the platform can do, and they run on live servers you can join. Anybody can create games on GameSpice, and everything in the family is its own repository and can be used separately from the games.
+
 No shipped game vendors the template. It is the starting point for a new one, and Coin Grab is its only game.
 
 The whole collection is at [zeesgames.com](https://zeesgames.com).
